@@ -9,7 +9,7 @@
   color-scheme:dark;
   --bg:#181a1a; --panel:#1f2221; --panel-2:#252928; --line:#2f3433; --dot:#3a403e;
   --fg:#e9eeeb; --muted:#8b9490; --dim:#5d6663;
-  --teal:#4f8cff; --teal-deep:#3a5fd6; --glow:rgba(79,140,255,.22); --violet:#a855f7; --fuchsia:#e879f9; --cyan:#22d3ee;
+  --teal:#4f8cff; --teal-deep:#3a5fd6; --glow:rgba(79,140,255,.22); --violet:#a855f7; --pet:#34d399; --fuchsia:#e879f9; --cyan:#22d3ee;
   --grad:linear-gradient(135deg,#4f8cff 0%,#7c5cff 55%,#a855f7 100%);
   --green:#8b7bff; --orange:#f5a524; --red:#ef4444; --white:#f4f7f5;
   --f:"Lexend","Segoe UI",system-ui,sans-serif;
@@ -58,7 +58,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .marker{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;border:0;padding:0;display:grid;place-items:center;
   box-shadow:0 0 0 4px rgba(0,0,0,.25),0 0 18px rgba(0,0,0,.4);transition:transform .15s}
 .marker:hover,.marker.on{transform:translate(-50%,-50%) scale(1.18);z-index:3}
-.marker.ok{background:var(--teal);color:#fff}
+.marker.ok{background:var(--pet);color:#06281c;box-shadow:0 0 0 4px rgba(0,0,0,.25),0 0 16px rgba(52,211,153,.45)}
 .marker.ask{background:var(--orange);color:#2b1606}
 .marker.no{background:transparent;box-shadow:none}
 .marker.saved::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--white)}
@@ -140,7 +140,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .facts{display:flex;gap:6px;flex-wrap:wrap}
 .fact{font-size:11px;background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--muted);white-space:nowrap}
 .fact b{color:var(--fg);font-weight:400}
-.fact.ok{color:#8fb4ff;border-color:color-mix(in srgb,var(--teal) 45%,var(--line))}
+.fact.ok{color:var(--pet);border-color:color-mix(in srgb,var(--pet) 45%,var(--line))}
 .fact.no{color:var(--red);border-color:color-mix(in srgb,var(--red) 35%,var(--line))}
 .fact.ask{color:var(--orange);border-color:color-mix(in srgb,var(--orange) 35%,var(--line))}
 .fact.teal{color:#c99bff;border-color:color-mix(in srgb,var(--violet) 45%,var(--line))}
@@ -247,7 +247,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
       <div class="mapLegend" aria-label="Map legend">
         <div class="li"><span class="sw" style="background:#22d3ee"></span>Work · TecWise (Wierdapark)</div>
         <div class="li"><span class="sw" style="background:#e879f9"></span>Work · Drive (Irene)</div>
-        <div class="li"><span class="sw" style="background:var(--teal)"></span>Pets OK</div>
+        <div class="li"><span class="sw" style="background:var(--pet)"></span>Pets OK</div>
         <div class="li"><span class="sw" style="background:var(--orange)"></span>Pets: ask</div>
         <div class="li"><span class="sw" style="background:var(--red)"></span>No pets / no cats</div>
         <div class="li"><span class="sw" style="border:2px solid var(--white)"></span>On our shortlist</div>
@@ -516,7 +516,7 @@ function renderBoard(){
 }
 function renderTiles(){
   const all=activeAll(), n=all.length;
-  const t=[["ok","Pet friendly","var(--teal)",ICON.ok,all.filter(l=>petClass(l)==="ok").length],
+  const t=[["ok","Pet friendly","var(--pet)",ICON.ok,all.filter(l=>petClass(l)==="ok").length],
            ["no","No cats / no pets","var(--red)",'<svg width="14" height="14" viewBox="0 0 26 26"><path d="M13 3 24 22H2z" fill="#e5534b"/></svg>',all.filter(l=>petClass(l)==="no").length],
            ["ask","Pets: ask agent","var(--orange)",ICON.ask,all.filter(l=>petClass(l)==="ask").length],
            ["fibre","Fibre mentioned","var(--muted)",ICON.box,all.filter(fibreOk).length]];
