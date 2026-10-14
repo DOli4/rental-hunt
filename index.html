@@ -149,7 +149,6 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .brand b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;cursor:pointer;position:relative;transition:border-color .15s}
-.card:hover{border-color:var(--teal-deep);box-shadow:0 0 0 1px rgba(188,108,255,.25),0 12px 34px rgba(188,108,255,.14)}
 .card.gone{opacity:.5}
 .card .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .card h3{font-size:15px;font-weight:400}
@@ -330,11 +329,11 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
    --lx/--ly are the pointer's position inside each card, set from JS; the original's background-attachment:fixed
    trick breaks on masked layers in Chrome. --- */
 @media (hover:hover) and (pointer:fine){
-  .card{--glow-base:185;--glow-spread:150;--spot:260px;--hue:calc(var(--glow-base) + var(--xp,0) * var(--glow-spread));
+  .card{--glow-base:185;--glow-spread:150;--spot:340px;--hue:calc(var(--glow-base) + var(--xp,0) * var(--glow-spread));
     background-image:radial-gradient(var(--spot) var(--spot) at var(--lx,-999px) var(--ly,-999px),hsl(var(--hue) 100% 70% / .09),transparent)}
   .card::before,.card::after{content:"";position:absolute;inset:-1px;border-radius:inherit;border:2px solid transparent;pointer-events:none;
     -webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) padding-box exclude,linear-gradient(#000 0 0)}
-  .card::before{background-image:radial-gradient(calc(var(--spot) * .75) calc(var(--spot) * .75) at var(--lx,-999px) var(--ly,-999px),hsl(var(--hue) 100% 62% / 1),transparent 100%);filter:brightness(2)}
+  .card::before{background-image:radial-gradient(calc(var(--spot) * .9) calc(var(--spot) * .9) at var(--lx,-999px) var(--ly,-999px),hsl(var(--hue) 100% 64% / 1),transparent 100%);filter:brightness(2)}
   .card::after{background-image:radial-gradient(calc(var(--spot) * .35) calc(var(--spot) * .35) at var(--lx,-999px) var(--ly,-999px),hsl(0 0% 100% / .85),transparent 100%)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.fx,.ringfx{display:none}}
