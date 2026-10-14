@@ -1,5 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Centurion Rental Hunt</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#181a1a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2300F0FF'/%3E%3Cstop offset='.5' stop-color='%23BC6CFF'/%3E%3Cstop offset='1' stop-color='%23FF5CA8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M4 15 16 4l12 11v13H19v-8h-6v8H4z' fill='url(%23g)'/%3E%3C/svg%3E">
+<script src="config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@200;300;400;500;600&display=swap">
 <style>
@@ -302,14 +309,45 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .mapSide:not([hidden]){animation:drawerIn .3s cubic-bezier(.2,.8,.2,1)}
 .pop{animation:popIn .22s cubic-bezier(.2,1.3,.4,1)}
 @keyframes popIn{from{transform:scale(.92);opacity:0}}
+/* --- who's this (name + passcode) --- */
+.whoChip{cursor:pointer;font:inherit;font-size:11px}
+.whoChip i{background:var(--fuchsia);box-shadow:0 0 8px var(--fuchsia);animation:none}
+.whoChip.ro i{background:var(--muted);box-shadow:none}
+.whoBox{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)}
+.whoCard{width:min(380px,100%);background:var(--panel);border:1px solid color-mix(in srgb,var(--teal) 35%,var(--line));border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 80px rgba(0,0,0,.5);animation:popIn .25s cubic-bezier(.2,1.3,.4,1)}
+.whoCard h2{font-size:20px} .whoCard h2 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.whoCard p{margin:0;font-size:13px;color:var(--muted)}
+.whoCard .err{color:var(--red);font-size:12px;min-height:16px}
+
+/* --- listing photos --- */
+.lp{display:block;width:100%;object-fit:cover;background:var(--panel-2);border-radius:10px}
+.card .lp{aspect-ratio:16/9}
+.photos{flex:none;display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
+.photos .lp{flex:0 0 85%;aspect-ratio:4/3;scroll-snap-align:start}
+
+/* --- spotlight glow on cards (ported from the GlowCard component): a border light that follows the
+   pointer and shifts hue from cyan on the left of the screen to pink on the right. Pointer devices only.
+   --lx/--ly are the pointer's position inside each card, set from JS; the original's background-attachment:fixed
+   trick breaks on masked layers in Chrome. --- */
+@media (hover:hover) and (pointer:fine){
+  .card{--glow-base:185;--glow-spread:150;--spot:260px;--hue:calc(var(--glow-base) + var(--xp,0) * var(--glow-spread));
+    background-image:radial-gradient(var(--spot) var(--spot) at var(--lx,-999px) var(--ly,-999px),hsl(var(--hue) 100% 70% / .09),transparent)}
+  .card::before,.card::after{content:"";position:absolute;inset:-1px;border-radius:inherit;border:2px solid transparent;pointer-events:none;
+    -webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) padding-box exclude,linear-gradient(#000 0 0)}
+  .card::before{background-image:radial-gradient(calc(var(--spot) * .75) calc(var(--spot) * .75) at var(--lx,-999px) var(--ly,-999px),hsl(var(--hue) 100% 62% / 1),transparent 100%);filter:brightness(2)}
+  .card::after{background-image:radial-gradient(calc(var(--spot) * .35) calc(var(--spot) * .35) at var(--lx,-999px) var(--ly,-999px),hsl(0 0% 100% / .85),transparent 100%)}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.fx,.ringfx{display:none}}
 </style>
+</head>
+<body>
 
 <div class="wrap">
  <section class="shell" aria-label="Overview">
   <div class="topbar">
     <div class="brand">rental<b>hunt</b>&gt;</div>
-    <span class="live" title="Changes from either of you appear instantly"><i></i>Live</span><span class="sync" id="sync">connecting…</span>
+    <span class="live" id="liveChip" title="Changes from anyone appear here within seconds"><i></i>Live</span><span class="sync" id="sync">connecting…</span>
+    <button class="live whoChip ro" id="whoChip" type="button" title="Change who you are or add the passcode"><i></i><span id="whoName">View only</span></button>
     <label class="sel">Area
       <select id="fArea"><option value="core">Within 10 min</option><option value="nearby">Just outside</option><option value="all">Everything</option></select></label>
     <label class="sel">Max
@@ -400,6 +438,16 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 <div class="scrim" id="scrim" hidden></div>
 <aside class="drawer" id="drawer" hidden aria-modal="true" role="dialog" aria-labelledby="dTitle"></aside>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden><span class="ti" id="toastI"></span><span class="tt" id="toastT"></span></div>
+<div class="whoBox" id="whoBox" hidden>
+  <form class="whoCard" id="whoForm" role="dialog" aria-modal="true" aria-labelledby="whoTitle">
+    <h2 id="whoTitle">Who's <span>this?</span></h2>
+    <p>Your name shows next to the places you mark and the notes you add. To save anything you also need the passcode Dieter shared with you.</p>
+    <div class="field"><label class="label" for="whoN">Your name</label><input id="whoN" maxlength="40" autocomplete="nickname" placeholder="e.g. Anna" required></div>
+    <div class="field"><label class="label" for="whoP">Passcode</label><input id="whoP" type="password" autocomplete="current-password" placeholder="From Dieter"></div>
+    <div class="err" id="whoErr" role="alert"></div>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn" id="whoLook">Just look around</button><button type="submit" class="btn primary" id="whoGo">Let me in</button></div>
+  </form>
+</div>
 
 <script>
 const ANCHORS = { tecwise:{name:"TecWise", sub:"Estcourt Ave, Wierdapark", lat:-25.8722, lng:28.1590, color:"#00F0FF"}, drive:{name:"Drive", sub:"Guernsey Business Park, Irene", lat:-25.8538, lng:28.2506, color:"#FF5CA8"} };
@@ -414,7 +462,9 @@ const ICON = {
   box:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12h8"/></svg>'
 };
 
-const S = { notesOpen:new Set(), freshNote:null, freshKind:"add", editNote:null, delArm:null, listings:new Map(), track:new Map(), meta:{}, settings:{}, tab:"places", tile:null, mapMode:"all", openId:null, popId:null, sideId:null, flash:new Set(), lastSync:0, gaugesShown:false, listShown:false, prevNums:{}, db:null, user:null, me:null, names:{}, loaded:false };
+const S = { notesOpen:new Set(), freshNote:null, freshKind:"add", editNote:null, delArm:null, listings:new Map(), track:new Map(), meta:{}, settings:{}, tab:"places", tile:null, mapMode:"all", openId:null, popId:null, sideId:null, flash:new Set(), lastSync:0, gaugesShown:false, listShown:false, prevNums:{}, me:null, pass:"", mode:null, dataSha:null, busy:new Map(), savedAt:new Map(), loaded:false };
+const CFG = Object.assign({ workerUrl:"", rawBase:"" }, window.RENTAL_CONFIG||{}); CFG.workerUrl=CFG.workerUrl.replace(/\/+$/,"");
+try{ S.me=localStorage.getItem("rh-name")||null; S.pass=localStorage.getItem("rh-pass")||""; }catch(e){}
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const rand = n => "R" + Number(n).toLocaleString("en-ZA").replace(/[, ]/g," ");
@@ -560,11 +610,11 @@ function renderMap(light){
       let v=0; for(const p of vis){ const dx=x-p.x, dy=y-p.y, d2=dx*dx+dy*dy; if(d2<sig*sig*9) v+=Math.exp(-d2/(2*sig*sig)); }
       let z=0; for(const a of anchors){ const d=Math.hypot(x-a.x,y-a.y); if(d<ring) z=Math.max(z,.16+.16*(1-d/ring)); }
       const nx=(x-VIEW.tx)/VIEW.z, ny=(y-VIEW.ty)/VIEW.z, nz=vnoise(nx/38,ny/38)*.7+vnoise(nx/11,ny/11)*.3;
-      const t=Math.min(1.4, v*.55 + z + (nz-.45)*.3);
+      const t=Math.min(1.4, v*.45 + z + (nz-.45)*.3);
       let r, col;
       if(t<.18){ col=`rgba(90,100,96,${.2+nz*.18})`; r=.7; }
-      else if(t<.75){ const a=(t-.18)/.57; col=`rgba(${Math.round(90+a*98)},${Math.round(60+a*48)},${Math.round(160+a*95)},${.4+a*.5})`; r=.9+a*1.1; }
-      else { if(HOT.length<700) HOT.push(x,y); const a=Math.min(1,(t-.75)/.6); col=`rgba(${Math.round(188+a*67)},${Math.round(108-a*16)},${Math.round(255-a*87)},.95)`; r=2+a*.6; }
+      else if(t<.75){ const a=(t-.18)/.57; col=`rgba(${Math.round(90+a*98)},${Math.round(60+a*48)},${Math.round(160+a*95)},${.25+a*.3})`; r=.9+a*.9; }
+      else { if(HOT.length<700) HOT.push(x,y); const a=Math.min(1,(t-.75)/.6); col=`rgba(${Math.round(188+a*67)},${Math.round(108-a*16)},${Math.round(255-a*87)},.6)`; r=1.7+a*.4; }
       ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
     } }
   }
@@ -654,7 +704,7 @@ function grabTA(root){ const o={vals:{},focus:null,sel:null}; if(!root) return o
 function putTA(root,o){ if(!root) return; root.querySelectorAll("textarea[data-key]").forEach(ta=>{ const k=ta.dataset.key; if(o.vals[k]!=null) ta.value=o.vals[k]; if(o.focus===k){ ta.focus(); try{ ta.setSelectionRange(o.sel[0],o.sel[1]); }catch(e){} } }); if(!S.editNote) root.querySelectorAll(".nList").forEach(nl=>nl.scrollTop=nl.scrollHeight); }
 function rerenderNotes(){ renderList(); if(S.openId) renderDrawer(); }
 function ago(iso){ const d=(Date.now()-new Date(iso).getTime())/1000; if(!(d>=0)) return ""; if(d<60) return "just now"; if(d<3600) return Math.round(d/60)+" min ago"; if(d<86400) return Math.round(d/3600)+" h ago"; if(d<86400*7) return Math.round(d/86400)+" d ago"; return new Date(iso).toLocaleDateString("en-ZA",{day:"numeric",month:"short"}); }
-function whoIs(by){ if(!by) return "Someone"; if(S.me && by===S.me) return "You"; const n=S.names[by]; return n && n!=="someone" && n!=="you" ? n.split(" ")[0] : "Partner"; }
+function whoIs(by){ if(!by) return "Someone"; return S.me && by===S.me ? "You" : by; }
 function notesOf(id){ return (tr(id).log||[]).slice().sort((a,b)=>String(a.at).localeCompare(String(b.at))); }
 function notesBlock(id, where){
   const log=notesOf(id);
@@ -670,10 +720,15 @@ function notesBlock(id, where){
 }
 async function addNote(id, text){
   text=text.trim(); if(!text) return false;
-  const n={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), by:S.me||null, at:new Date().toISOString(), text:text.slice(0,2000)};
+  // the id goes to the server too, so a retry after a lost reply can't post the note twice
+  const n={id:"n"+Date.now().toString(36)+Math.random().toString(36).slice(2,7), by:S.me||null, at:new Date().toISOString(), text:text.slice(0,2000)};
   S.freshNote=n.id; S.freshKind="add"; setTimeout(()=>{ if(S.freshNote===n.id) S.freshNote=null; },1500);
-  return saveTrack(id,{log:[...(tr(id).log||[]), n]});
+  return saveTrack(id,{log:[...(tr(id).log||[]), n]},{op:"note.add",nid:n.id,text:n.text});
 }
+const safeUrl = u => /^https:\/\//i.test(u||"") ? esc(u) : "#";
+const photosOf = l => (Array.isArray(l.photos)?l.photos:[]).filter(u=>/^https:\/\//i.test(u)).slice(0,12);
+const photoImg = u => `<img class="lp" src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;
+document.addEventListener("error", e=>{ if(e.target.classList && e.target.classList.contains("lp")) e.target.remove(); }, true); // hide broken photos
 function card(l){
   const st=statusOf(l.id), t=tr(l.id), pc=petClass(l), fav=SHORT.includes(st);
   const facts=[`<span class="fact ${pc==="ask"?"pet-ask":pc}">${petLabel(l)}</span>`];
@@ -681,8 +736,10 @@ function card(l){
   if(secOk(l)) facts.push(`<span class="fact">Security</span>`);
   if(l.available) facts.push(`<span class="fact">Available <b>${esc(l.available)}</b></span>`);
   if(l.note) facts.push(`<span class="fact ask">Check note</span>`);
+  const ph=photosOf(l)[0];
   return `<article class="card ${l.active===false?"gone":""}" data-id="${esc(l.id)}" tabindex="0">
     ${isNew(l)?`<span class="newFlag">New</span>`:""}
+    ${ph?photoImg(ph):""}
     <div class="top"><div style="min-width:0"><h3>${esc(l.type)} · ${esc(l.suburb)}</h3><div class="where">${esc(l.address||"Address on request")}</div></div>
       <div class="price num">${rand(l.price)}<small> pm</small></div></div>
     <div class="facts"><span class="fact"><b>${l.beds}</b> bed</span><span class="fact"><b>${l.baths}</b> bath</span>${l.size_m2?`<span class="fact"><b>${l.size_m2}</b> m²</span>`:""}<span class="fact">TecWise <b>~${l.min_tecwise}</b> min</span><span class="fact">Drive <b>~${l.min_drive}</b> min</span></div>
@@ -728,7 +785,7 @@ function renderSide(){
       <div><div class="label" style="margin-bottom:6px">Where we are with it</div><div class="statusPick">${STATUSES.map(([k,v])=>`<button data-sidestatus="${k}" aria-pressed="${st===k}">${v}</button>`).join("")}</div></div>
       <div><div class="label" style="margin-bottom:6px">Contact</div><div>${esc(l.agency||"Agency not shown")}${l.agent?` · ${esc(l.agent)}`:""}</div>${phone?`<div class="num" style="margin-top:2px">${esc(prettyPhone(phone))}</div>`:`<div class="muted" style="font-size:12px;margin-top:2px">No number yet. Open the listing, tap "Show number", then add it under Full details.</div>`}</div>
       ${t.note?`<div><div class="label" style="margin-bottom:6px">Our notes</div><div class="note">${esc(t.note)}</div></div>`:""}
-      <div class="row"><a class="btn small" href="${esc(l.url)}" target="_blank" rel="noopener">Open listing</a>${wa?`<a class="btn small wa" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>`:""}<a class="btn small" href="${esc(l.maps_url)}" target="_blank" rel="noopener">Google Maps</a></div>
+      <div class="row"><a class="btn small" href="${safeUrl(l.url)}" target="_blank" rel="noopener">Open listing</a>${wa?`<a class="btn small wa" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>`:""}<a class="btn small" href="${safeUrl(l.maps_url)}" target="_blank" rel="noopener">Google Maps</a></div>
     </div>
     <div class="sf"><button class="btn primary" data-open="${esc(l.id)}">Full details ⤢</button><button class="btn" data-heart="${esc(l.id)}">${SHORT.includes(st)?"♥ Saved":"♡ Interested"}</button></div>`;
 }
@@ -747,7 +804,7 @@ function renderDrawer(first){
   const activeId=document.activeElement && document.activeElement.closest && document.activeElement.closest("#drawer") ? document.activeElement.id : null;
   const keep={}; ["dPhone","dEmail","dNote","dView"].forEach(k=>{ const el=$(k); if(el && el===document.activeElement) keep[k]=el.value; });
   const dKeepTA=grabTA($("drawer"));
-  const who=t.updatedBy?(S.names[t.updatedBy]||"someone"):null;
+  const who=t.updatedBy?whoIs(t.updatedBy):null;
   const wa=intl(phone)?`https://wa.me/${intl(phone)}?text=${encodeURIComponent(msg)}`:"";
   const origin=encodeURIComponent(l.geo==="exact"?l.lat+","+l.lng:(l.address?l.address+", ":"")+l.suburb+", Centurion");
   $("drawer").innerHTML=`
@@ -756,6 +813,7 @@ function renderDrawer(first){
      <div class="price num" style="margin-top:8px">${rand(l.price)}<small> pm${l.deposit?` · deposit ${esc(l.deposit)}`:""}</small></div></div>
      <button class="iconbtn x" id="dClose" aria-label="Close">×</button></div>
    <div class="dBody">
+     ${photosOf(l).length?`<div class="photos">${photosOf(l).map(photoImg).join("")}</div>`:""}
      <div class="sec"><div class="label">Where we are with it</div>
        <div class="statusPick">${STATUSES.map(([k,v])=>`<button data-status="${k}" aria-pressed="${st===k}">${v}</button>`).join("")}</div>
        ${who?`<div class="muted" style="font-size:11px">Last changed by ${esc(who)}${t.updatedAt?` · ${new Date(t.updatedAt).toLocaleString("en-ZA",{dateStyle:"medium",timeStyle:"short"})}`:""}</div>`:""}</div>
@@ -769,7 +827,7 @@ function renderDrawer(first){
          <a class="btn wa" href="${wa||"#"}" target="_blank" rel="noopener" aria-disabled="${!wa}">WhatsApp</a>
          <a class="btn" href="${phone?"tel:"+intl(phone).replace(/^27/,"0"):"#"}" aria-disabled="${!phone}">Call</a>
          <a class="btn" href="${email?`mailto:${esc(email)}?subject=${encodeURIComponent("Rental enquiry: "+l.beds+"-bed "+l.type+" in "+l.suburb)}&body=${encodeURIComponent(msg)}`:"#"}" aria-disabled="${!email}">Email</a>
-         <a class="btn primary" href="${esc(l.url)}" target="_blank" rel="noopener">Open listing</a></div>
+         <a class="btn primary" href="${safeUrl(l.url)}" target="_blank" rel="noopener">Open listing</a></div>
        ${phone?`<div class="muted" style="font-size:12px">Number <span class="num" style="color:var(--fg)">${esc(prettyPhone(phone))}</span> <button class="btn small" data-copy="${esc(prettyPhone(phone))}">Copy</button>${email?` · <span style="color:var(--fg)">${esc(email)}</span> <button class="btn small" data-copy="${esc(email)}">Copy</button>`:""}</div>`:""}
      </div>
      <div class="sec"><div class="label">Message for this place</div><div class="msg" id="dMsg">${esc(msg)}</div>
@@ -784,7 +842,7 @@ function renderDrawer(first){
        ${l.summary?`<p style="margin:0;font-size:13px">${esc(l.summary)}</p>`:""}
        ${l.note?`<div class="banner">${esc(l.note)}</div>`:""}
        ${(l.dupes||[]).length?`<div class="muted" style="font-size:11px">Also listed on another site.</div>`:""}
-       <div class="row"><a class="btn" href="${esc(l.maps_url)}" target="_blank" rel="noopener">Open in Google Maps</a>
+       <div class="row"><a class="btn" href="${safeUrl(l.maps_url)}" target="_blank" rel="noopener">Open in Google Maps</a>
          <a class="btn" href="https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=Drive.co.za+Guernsey+Business+Park+Saltus+Street+Irene" target="_blank" rel="noopener">Route to Drive</a>
          <a class="btn" href="https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=Estcourt+Avenue,+Wierdapark,+Centurion" target="_blank" rel="noopener">Route to TecWise</a></div></div>
      <div class="sec"><div class="label">Our notes</div>
@@ -797,50 +855,60 @@ function renderDrawer(first){
   putTA($("drawer"),dKeepTA); { const nl=$("drawer").querySelector(".nList"); if(nl && !S.editNote) nl.scrollTop=nl.scrollHeight; }
   if(first) $("dClose").focus();
 }
-async function saveTrack(id, patch){
+// Shows the change straight away, sends one op to the save helper, then swaps in what the server kept.
+// body defaults to {op:"set", fields:patch}; notes pass their own op. Server-side ops mean two people
+// saving at once never overwrite each other.
+async function saveTrack(id, patch, body){
+  if(!CFG.workerUrl || S.mode==="raw"){ toast("Saving is off right now, this is a read-only copy","error"); return false; }
+  if(!S.pass || !S.me){ openWho("Add your name and the passcode to save changes."); return false; }
   const prev=tr(id), cur=plain(prev)||{};
-  const next=plain(Object.assign({},cur,patch,{updatedAt:new Date().toISOString(),updatedBy:S.me||cur.updatedBy||null}));
-  S.track.set(id,next); render();
-  if(!S.db){ S.track.set(id,prev); render(); toast("Couldn't save: open this page signed in to Claude","error"); return false; }
-  for(let attempt=0; attempt<2; attempt++){
-    try{ await S.db.doc("track/"+id).set(next); return true; }
-    catch(e){ const code=e&&e.code; console.warn("[rental] save failed", code, e&&e.message);
-      if(attempt===0 && (code==="unavailable"||code==="resource_exhausted")){ await new Promise(r=>setTimeout(r,600+Math.random()*600)); continue; }
-      S.track.set(id,prev); render();
-      toast(code==="invalid_argument"?"Couldn't save: this view can't write. Ask Dieter to make you a Contributor.":code==="quota_exceeded"?"The shared store is full":`Couldn't save (${code||"error"}). Try again.`,"error"); return false; }
-  }
-  return false;
+  S.track.set(id,plain(Object.assign({},cur,patch,{updatedAt:new Date().toISOString(),updatedBy:S.me}))); render();
+  S.busy.set(id,(S.busy.get(id)||0)+1);
+  const undo=msg=>{ if(S.busy.get(id)===1) S.track.set(id,prev); S.savedAt.delete(id); S.dataSha=null; render(); toast(msg,"error"); return false; };
+  try{
+    let r;
+    for(let attempt=0; attempt<2 && !r; attempt++){
+      try{ r=await fetch(CFG.workerUrl+"/op",{method:"POST",headers:{"Content-Type":"application/json","X-Passcode":encodeURIComponent(S.pass),"X-Name":encodeURIComponent(S.me)},body:JSON.stringify(plain(Object.assign({id},body||{op:"set",fields:patch}))),signal:AbortSignal.timeout(15000)}); }
+      catch(e){ if(attempt===0) await new Promise(res=>setTimeout(res,700)); }
+    }
+    if(!r) return undo("Couldn't reach the save helper. Check your connection and try again.");
+    if(r.status===401){ S.pass=""; try{localStorage.removeItem("rh-pass")}catch(e){} updWho(); undo("Wrong passcode"); openWho("That passcode didn't work. Check it with Dieter."); return false; }
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok || !j.entry) return undo(`Couldn't save: ${j.error||"error "+r.status}`);
+    if(S.busy.get(id)===1) S.track.set(id,j.entry); S.savedAt.set(id,Date.now()); S.lastSync=Date.now(); updSync(); render();
+    return true;
+  } finally { S.busy.set(id,S.busy.get(id)-1); if(!S.busy.get(id)) S.busy.delete(id); }
 }
 async function copy(text){ try{ await navigator.clipboard.writeText(text); toast("Copied","copy"); }catch(e){ toast("Select the text and copy it","error"); } }
 
 /* ---------- events ---------- */
 document.addEventListener("click", async e=>{
   const el=e.target;
-  const heart=el.closest("[data-heart]"); if(heart){ e.stopPropagation(); const id=heart.dataset.heart, st=statusOf(id); const rc=heart.getBoundingClientRect(); if(!SHORT.includes(st)) hearts(rc); else puff(rc); await saveTrack(id,{status:SHORT.includes(st)?"new":"interested"}); toast(SHORT.includes(statusOf(id))?"Added to your shortlist":"Removed from shortlist",SHORT.includes(statusOf(id))?"like":"unlike"); return; }
+  const heart=el.closest("[data-heart]"); if(heart){ e.stopPropagation(); const id=heart.dataset.heart, st=statusOf(id); const rc=heart.getBoundingClientRect(); if(!SHORT.includes(st)) hearts(rc); else puff(rc); if(await saveTrack(id,{status:SHORT.includes(st)?"new":"interested"})) toast(SHORT.includes(statusOf(id))?"Added to your shortlist":"Removed from shortlist",SHORT.includes(statusOf(id))?"like":"unlike"); return; }
   const nt=el.closest("[data-notestoggle]"); if(nt){ e.stopPropagation(); const id=nt.dataset.notestoggle; if(S.notesOpen.has(id)) S.notesOpen.delete(id); else S.notesOpen.add(id); renderList(); if(S.notesOpen.has(id)){ const ta=document.querySelector(`#view textarea[data-nin="${CSS.escape(id)}"]`); if(ta) ta.focus(); } return; }
   const an=el.closest("[data-addnote]"); if(an){ e.stopPropagation(); const id=an.dataset.addnote; const box=an.closest(".notesBox"); const ta=box&&box.querySelector("textarea[data-nin]"); if(ta && ta.value.trim()){ const v=ta.value; ta.value=""; const ok=await addNote(id,v); if(ok){ noteAdded(an.getBoundingClientRect()); toast("Note saved for both of you","note"); } else ta.value=v; } else if(ta) ta.focus(); return; }
   const dn=el.closest("[data-delnote]"); if(dn){ e.stopPropagation(); const key=dn.dataset.delnote; const [id,nid]=key.split("|");
     if(S.delArm!==key){ S.delArm=key; clearTimeout(S.delT); S.delT=setTimeout(()=>{ if(S.delArm===key){ S.delArm=null; rerenderNotes(); } },3500); rerenderNotes(); return; }
-    S.delArm=null; const item=dn.closest(".nItem"); const log=(tr(id).log||[]).filter(n=>n.id!==nid); noteDeleted(item?item.getBoundingClientRect():dn.getBoundingClientRect()); if(item && !RM){ item.classList.add("nGone"); await new Promise(r=>setTimeout(r,380)); } await saveTrack(id,{log}); toast("Note deleted","del"); return; }
+    S.delArm=null; const item=dn.closest(".nItem"); const log=(tr(id).log||[]).filter(n=>n.id!==nid); noteDeleted(item?item.getBoundingClientRect():dn.getBoundingClientRect()); if(item && !RM){ item.classList.add("nGone"); await new Promise(r=>setTimeout(r,380)); } if(await saveTrack(id,{log},{op:"note.delete",nid})) toast("Note deleted","del"); return; }
   const ed=el.closest("[data-editnote]"); if(ed){ e.stopPropagation(); S.editNote=ed.dataset.editnote; S.delArm=null; rerenderNotes(); const ta=document.querySelector(`textarea[data-nedit="${CSS.escape(S.editNote)}"]`); if(ta){ ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); } return; }
   if(el.closest("[data-canceledit]")){ e.stopPropagation(); S.editNote=null; rerenderNotes(); return; }
   const se=el.closest("[data-saveedit]"); if(se){ e.stopPropagation(); const key=se.dataset.saveedit; const [id,nid]=key.split("|"); const ta=se.closest(".nEdit").querySelector("textarea"); const v=(ta?ta.value:"").trim();
     if(!v){ ta&&ta.focus(); toast("A note can't be empty. Use Delete to remove it.","error"); return; }
     const log=(tr(id).log||[]).map(n=>n.id===nid ? Object.assign({},n,{text:v.slice(0,2000),edited:new Date().toISOString(),editedBy:S.me||null}) : n);
-    const rc=se.getBoundingClientRect(); S.editNote=null; S.freshNote=nid; S.freshKind="edit"; setTimeout(()=>{ if(S.freshNote===nid) S.freshNote=null; },1500); noteEdited(rc); await saveTrack(id,{log}); toast("Note updated","edit"); return; }
+    const rc=se.getBoundingClientRect(); S.editNote=null; S.freshNote=nid; S.freshKind="edit"; setTimeout(()=>{ if(S.freshNote===nid) S.freshNote=null; },1500); noteEdited(rc); if(await saveTrack(id,{log},{op:"note.edit",nid,text:v.slice(0,2000)})) toast("Note updated","edit"); return; }
   if(el.closest(".notesBox")) return;
   const op=el.closest("[data-open]"); if(op){ openDrawer(op.dataset.open); return; }
   const pop=el.closest("[data-pop]"); if(pop){ S.popId = S.popId===pop.dataset.pop ? null : pop.dataset.pop; renderMap(); return; }
   if(el.closest("[data-closepop]")){ S.popId=null; renderMap(); return; }
   const sd=el.closest("[data-side]"); if(sd){ S.sideId=sd.dataset.side; S.popId=null; renderMap(); renderSide(); return; }
   if(el.closest("[data-closeside]")){ S.sideId=null; renderSide(); renderMap(); return; }
-  const ss=el.closest("[data-sidestatus]"); if(ss && S.sideId){ sparkle(ss.getBoundingClientRect(), ss.dataset.sidestatus); await saveTrack(S.sideId,{status:ss.dataset.sidestatus}); toast("Marked "+STATUS_LABEL[ss.dataset.sidestatus].toLowerCase(),ss.dataset.sidestatus); return; }
+  const ss=el.closest("[data-sidestatus]"); if(ss && S.sideId){ sparkle(ss.getBoundingClientRect(), ss.dataset.sidestatus); if(await saveTrack(S.sideId,{status:ss.dataset.sidestatus})) toast("Marked "+STATUS_LABEL[ss.dataset.sidestatus].toLowerCase(),ss.dataset.sidestatus); return; }
   const tab=el.closest("[data-tab]"); if(tab){ S.tab=tab.dataset.tab; store.set("tab",S.tab); render(); return; }
   const jump=el.closest("[data-jump]"); if(jump){ S.tab=jump.dataset.jump; render(); $("placesSec").scrollIntoView({behavior:"smooth",block:"start"}); return; }
   const tile=el.closest("[data-tile]"); if(tile){ S.tile = S.tile===tile.dataset.tile ? null : tile.dataset.tile; render(); return; }
   const c=el.closest(".card"); if(c && !el.closest("a,button")){ openDrawer(c.dataset.id); return; }
   if(el.id==="dClose"||el.closest("#dClose")||el.id==="scrim"){ closeDrawer(); return; }
-  const sp=el.closest("[data-status]"); if(sp && S.openId){ sparkle(sp.getBoundingClientRect(), sp.dataset.status); await saveTrack(S.openId,{status:sp.dataset.status}); toast("Marked "+STATUS_LABEL[sp.dataset.status].toLowerCase(),sp.dataset.status); return; }
+  const sp=el.closest("[data-status]"); if(sp && S.openId){ sparkle(sp.getBoundingClientRect(), sp.dataset.status); if(await saveTrack(S.openId,{status:sp.dataset.status})) toast("Marked "+STATUS_LABEL[sp.dataset.status].toLowerCase(),sp.dataset.status); return; }
   const cp=el.closest("[data-copy]"); if(cp){ copy(cp.dataset.copy); return; }
   if(el.id==="dCopyMsg"){ copy($("dMsg").textContent); return; }
   if(el.id==="dSave" && S.openId){ const ok=await saveTrack(S.openId,{phone:$("dPhone").value.trim(),email:$("dEmail").value.trim(),note:$("dNote").value.trim(),viewing:$("dView").value.trim()}); if(ok&&$("dSaved")) $("dSaved").textContent="Saved for both of you"; return; }
@@ -894,30 +962,96 @@ const _render=render; render=function(){ _render(); countUps(); };
   set(m); bt.addEventListener("click",()=>{ m=!m; set(m); try{ localStorage.setItem("rh-legend-min",m?"1":"0"); }catch(e){} });
 })();
 
-/* ---------- live data ---------- */
-(async function boot(){
-  const use = window.claude && window.claude.use ? n => window.claude.use(n) : async () => null;
-  const db=await use("db"); S.db=db;
-  const user=await use("user"); S.user=user;
-  if(user){ try{ S.me=await user.id(); }catch(e){} }
-  if(!db){ S.loaded=true; $("banner").hidden=false; $("banner").textContent="Open this page while signed in to Claude to see the shared list and save places."; render(); return; }
-  let got=0; const ready=()=>{ if(++got>=2){ S.loaded=true; render(); if(location.hash.length>1){ const h=location.hash.slice(1); const hit=[...S.listings.keys()].find(k=>k.replace(/[^\w.~-]/g,"_")===h); if(hit) openDrawer(hit); } } };
-  db.collection("listings").onSnapshot(snap=>{ S.lastSync=Date.now(); updSync(); S.listings=new Map(snap.docs.map(d=>[d.id,Object.assign({id:d.id},d.data())])); S.loaded?render():ready(); },
-    ()=>{ $("banner").hidden=false; $("banner").textContent="Couldn't load places right now. Reload in a minute."; });
-  db.collection("track").onSnapshot(async snap=>{
-    const before=S.track; S.track=new Map(snap.docs.map(d=>[d.id,plain(d.data())])); S.lastSync=Date.now(); updSync();
-    if(S.loaded){ for(const [id,t] of S.track){ const o=before.get(id)||{}; if(t.updatedBy && t.updatedBy!==S.me && (t.status!==o.status || t.note!==o.note || t.phone!==o.phone || (t.log||[]).length>(o.log||[]).length)){
-      const l=S.listings.get(id); S.flash.add(id); setTimeout(()=>{ S.flash.delete(id); },2600);
-      const who=(S.names[t.updatedBy]&&S.names[t.updatedBy]!=="someone")?S.names[t.updatedBy]:"Your partner";
-      const newNote=(t.log||[]).length>(o.log||[]).length ? (t.log||[])[(t.log||[]).length-1] : null;
-      if(l && newNote && t.status===o.status) toast(`${who} added a note on ${l.suburb}: “${String(newNote.text).slice(0,60)}${String(newNote.text).length>60?"…":""}”`,"partner");
-      else if(l) toast(t.status!==o.status ? `${who} marked ${l.type.toLowerCase()} in ${l.suburb} as ${STATUS_LABEL[t.status||"new"].toLowerCase()}` : `${who} updated ${l.type.toLowerCase()} in ${l.suburb}`,"partner");
-      if(SHORT.includes(t.status) && !SHORT.includes(o.status)){ const m=document.querySelector(`.card[data-id="${CSS.escape(id)}"] .heart`); if(m) hearts(m.getBoundingClientRect()); } } } }
-    const ids=[...new Set([...S.track.values()].flatMap(t=>[t.updatedBy,...(t.log||[]).map(n=>n.by)]).filter(Boolean))];
-    if(user && ids.length){ try{ const ps=await user.profiles(ids); for(const id of ids) S.names[id]=(ps[id]&&ps[id].name)||"someone"; if(S.me) S.names[S.me]="you"; }catch(e){} }
-    S.loaded?render():ready();
-  });
-  db.doc("meta/run").onSnapshot(s=>{ S.meta=s.data()||{}; render(); });
-  db.doc("prefs/settings").onSnapshot(s=>{ S.settings=s.data()||{}; if(S.openId) renderDrawer(); });
+/* ---------- data: the save helper when it's reachable, else the raw files on GitHub (read-only) ---------- */
+async function fetchData(){
+  if(CFG.workerUrl){ try{ const r=await fetch(CFG.workerUrl+"/data"+(S.dataSha&&S.mode==="live"?"?v="+encodeURIComponent(S.dataSha):""),{cache:"no-store"}); if(r.ok) return [await r.json(),"live"]; }catch(e){} }
+  if(CFG.rawBase && S.mode!=="live"){ const get=f=>fetch(CFG.rawBase+f,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null);
+    const [listings,track,meta,settings]=await Promise.all(["listings.json","track.json","meta.json","settings.json"].map(get));
+    if(listings) return [{listings,track,meta,settings},"raw"]; }
+  return [null,null];
+}
+// A poll that left before one of our saves landed would undo it on screen, so keep our copy for a few seconds.
+// Returns true when it did, so the caller re-reads the full snapshot next time instead of trusting its sha.
+function applyTrack(obj, started){
+  const before=S.track, next=new Map(Object.entries(obj||{}).map(([k,v])=>[k,plain(v)])); let kept=false;
+  for(const [id,at] of S.savedAt){ if(at<Date.now()-60000) S.savedAt.delete(id); }
+  for(const id of new Set([...S.busy.keys(),...S.savedAt.keys()])){ if(S.busy.has(id) || S.savedAt.get(id)>started-8000){ const mine=before.get(id); if(mine){ next.set(id,mine); kept=true; } } }
+  S.track=next;
+  if(!S.loaded || S.mode==="raw") return kept;
+  for(const [id,t] of S.track){ const o=before.get(id)||{}; if(t.updatedBy && t.updatedBy!==S.me && (t.status!==o.status || t.note!==o.note || t.phone!==o.phone || (t.log||[]).length>(o.log||[]).length)){
+    const l=S.listings.get(id); S.flash.add(id); setTimeout(()=>{ S.flash.delete(id); },2600);
+    const who=t.updatedBy, newNote=(t.log||[]).length>(o.log||[]).length ? (t.log||[])[(t.log||[]).length-1] : null;
+    if(l && newNote && t.status===o.status) toast(`${who} added a note on ${l.suburb}: “${String(newNote.text).slice(0,60)}${String(newNote.text).length>60?"…":""}”`,"partner");
+    else if(l) toast(t.status!==o.status ? `${who} marked ${l.type.toLowerCase()} in ${l.suburb} as ${STATUS_LABEL[t.status||"new"].toLowerCase()}` : `${who} updated ${l.type.toLowerCase()} in ${l.suburb}`,"partner");
+    if(SHORT.includes(t.status) && !SHORT.includes(o.status)){ const m=document.querySelector(`.card[data-id="${CSS.escape(id)}"] .heart`); if(m) hearts(m.getBoundingClientRect()); } } }
+  return kept;
+}
+let loading=false;
+async function load(){
+  if(loading) return; loading=true; const started=Date.now();
+  try{
+    const [d,mode]=await fetchData();
+    if(!d){ if(!S.loaded){ S.loaded=true; render(); banner("Couldn't load places right now. It keeps trying every few seconds."); } else $("sync").textContent="reconnecting…"; return; }
+    S.lastSync=Date.now(); updSync();
+    if(mode!==S.mode){ S.mode=mode; updWho(); }
+    if(d.same) return;
+    // listings come from scraped sites: force numeric fields to numbers before they meet any template
+    const NUM=["price","beds","baths","size_m2","min_tecwise","min_drive","lat","lng"];
+    S.listings=new Map(((d.listings&&d.listings.listings)||[]).map(l=>{ for(const k of NUM) l[k]=l[k]==null||l[k]===""?null:Number(l[k]); return [String(l.id),l]; }));
+    S.meta=d.meta||{}; S.settings=d.settings||{};
+    S.dataSha=applyTrack(d.track,started) ? null : (d.sha||null);
+    const first=!S.loaded; S.loaded=true; updWho(); render();
+    if(first && location.hash.length>1){ const h=location.hash.slice(1); const hit=[...S.listings.keys()].find(k=>k.replace(/[^\w.~-]/g,"_")===h); if(hit) openDrawer(hit); }
+    if(first){ let seen=false; try{ seen=!!localStorage.getItem("rh-seen"); }catch(e){} if(!S.me && !seen && mode==="live") openWho(""); }
+  } finally { loading=false; }
+}
+setInterval(()=>{ if(document.visibilityState==="visible") load(); },15000);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") load(); });
+
+/* ---------- who's this: a name for "updatedBy" and notes, plus the shared passcode ---------- */
+function banner(msg){ $("banner").hidden=!msg; $("banner").textContent=msg||""; }
+function updWho(){
+  const ok=!!(S.me&&S.pass);
+  $("whoName").textContent=S.me?(ok?S.me:S.me+" · view only"):"View only"; $("whoChip").classList.toggle("ro",!ok);
+  $("liveChip").lastChild.textContent=S.mode==="raw"?"Read-only copy":"Live";
+  banner(S.mode==="raw"?"Showing a saved copy, which can be a few minutes old. Saving is off right now."
+    : S.mode==="live"&&!ok?"View only. Tap your name at the top and add the passcode to mark places and add notes.":"");
+}
+function openWho(msg){ $("whoN").value=S.me||""; $("whoP").value=""; $("whoErr").textContent=msg||""; $("whoBox").hidden=false; ($("whoN").value?$("whoP"):$("whoN")).focus(); }
+function closeWho(){ $("whoBox").hidden=true; try{ localStorage.setItem("rh-seen","1"); }catch(e){} }
+$("whoChip").addEventListener("click",()=>openWho(""));
+$("whoLook").addEventListener("click",closeWho);
+$("whoBox").addEventListener("click",e=>{ if(e.target.id==="whoBox") closeWho(); });
+$("whoBox").addEventListener("keydown",e=>{ if(e.key==="Escape"){ e.stopPropagation(); closeWho(); } });
+$("whoForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const n=$("whoN").value.replace(/\s+/g," ").trim().slice(0,40), p=$("whoP").value;
+  if(!n){ $("whoErr").textContent="Type your name first"; $("whoN").focus(); return; }
+  if(p && CFG.workerUrl){
+    // Check the passcode: a right one gets past the 401 and is then turned away (400) for the empty request.
+    $("whoGo").disabled=true; let st=0;
+    try{ st=(await fetch(CFG.workerUrl+"/op",{method:"POST",headers:{"Content-Type":"application/json","X-Passcode":encodeURIComponent(p),"X-Name":encodeURIComponent(n)},body:"{}"})).status; }catch(e){}
+    $("whoGo").disabled=false;
+    if(st===401){ $("whoErr").textContent="That passcode isn't right"; $("whoP").select(); return; }
+  }
+  S.me=n; if(p) S.pass=p;
+  try{ localStorage.setItem("rh-name",n); if(p) localStorage.setItem("rh-pass",p); }catch(e){}
+  closeWho(); updWho(); render(); toast(S.pass?`Hi ${n}, you can save now`:`Hi ${n}`,"info");
+});
+
+/* ---------- spotlight glow: one pointer listener, once per frame: read every on-screen card's box, then write ---------- */
+(function(){ if(!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+  let f=0, x=-1e4, y=-1e4;
+  const paint=()=>{ f=0; const cards=[...$("view").querySelectorAll(".card")], rs=cards.map(c=>c.getBoundingClientRect());
+    cards.forEach((c,i)=>{ const r=rs[i]; if(r.bottom<0||r.top>innerHeight) return; c.style.setProperty("--lx",(x-r.left).toFixed(1)+"px"); c.style.setProperty("--ly",(y-r.top).toFixed(1)+"px"); });
+    $("view").style.setProperty("--xp",(x/innerWidth).toFixed(3)); };
+  const kick=()=>{ if(!f) f=requestAnimationFrame(paint); };
+  document.addEventListener("pointermove",e=>{ x=e.clientX; y=e.clientY; kick(); },{passive:true});
+  window.addEventListener("scroll",kick,{passive:true});
+  new MutationObserver(kick).observe($("view"),{childList:true}); // cards get rebuilt on every render
 })();
+
+updWho(); load();
 </script>
+</body>
+</html>

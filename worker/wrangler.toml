@@ -1,0 +1,10 @@
+name = "rental-hunt"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+REPO = "DOli4/rental-hunt"
+BRANCH = "data"
+ALLOWED_ORIGIN = "https://doli4.github.io"
+
+# Secrets (never put them here): npx wrangler secret put GITHUB_TOKEN / PASSCODE

@@ -1,7 +1,7 @@
 """Fold one evening's search results into data/listings.json.
 
 Usage:
-    python3 scripts/merge.py data/runs/2026-10-15.json
+    python3 scripts/merge.py run.json
 
 The run file is {"date": "YYYY-MM-DD", "sources_ok": ["Private Property", ...], "listings": [ ... ]}
 where each listing uses the same fields as data/listings.json (id, source, url, type, suburb,
@@ -14,8 +14,10 @@ What it does:
                           empty fields filled from the new data (existing details are kept)
   * ids not seen again -> active = False, but only when their source is in sources_ok
                           (a site that failed to load doesn't make its listings disappear)
-  * writes data/listings.json, data/history/<date>.json and data/changed.json
-    (the ids whose dashboard record must be rewritten)
+  * writes data/listings.json, data/history/<date>.json, data/changed.json (what changed tonight)
+    and data/meta.json (shown in the site header). Never touches data/track.json or data/settings.json.
+
+data/ is a checkout of the repo's `data` branch (git clone -b data --single-branch <repo> data).
 """
 import json, os, sys
 
@@ -28,10 +30,10 @@ MAX_PRICE = 16000
 
 
 def main(run_path):
-    run = json.load(open(run_path))
+    run = json.load(open(run_path, encoding="utf-8"))
     date = run["date"]
     ok_sources = set(run.get("sources_ok", []))
-    doc = json.load(open(LISTINGS))
+    doc = json.load(open(LISTINGS, encoding="utf-8"))
     cur = {l["id"]: l for l in doc["listings"]}
     changed, added, gone, repriced = set(), [], [], []
     seen = set()
@@ -75,13 +77,20 @@ def main(run_path):
 
     doc["listings"] = sorted(cur.values(), key=lambda x: (not x.get("active", True), x["tier"] != "core", x["price"]))
     doc["updated"] = date
-    json.dump(doc, open(LISTINGS, "w"), indent=1, ensure_ascii=False)
+    json.dump(doc, open(LISTINGS, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     os.makedirs(os.path.join(ROOT, "data", "history"), exist_ok=True)
-    json.dump(doc, open(os.path.join(ROOT, "data", "history", date + ".json"), "w"), indent=1, ensure_ascii=False)
+    json.dump(doc, open(os.path.join(ROOT, "data", "history", date + ".json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     summary = {"date": date, "sources_ok": sorted(ok_sources), "added": added, "gone": gone,
                "repriced": [{"id": a, "from": b, "to": c} for a, b, c in repriced],
                "changed": sorted(changed), "active": sum(1 for l in cur.values() if l.get("active", True))}
     json.dump(summary, open(os.path.join(ROOT, "data", "changed.json"), "w"), indent=1)
+    meta_path = os.path.join(ROOT, "data", "meta.json")
+    old = json.load(open(meta_path, encoding="utf-8")) if os.path.exists(meta_path) else {}
+    meta = {"last_run": date, "first_run": old.get("first_run", date), "count": summary["active"],
+            "added": len(added), "gone": len(gone), "repriced": len(repriced),
+            "sources": ", ".join(sorted(ok_sources)) or old.get("sources", ""),
+            "anchors": "TecWise (Estcourt Ave, Wierdapark) and Drive (Irene)"}
+    json.dump(meta, open(meta_path, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     print(json.dumps({k: (len(v) if isinstance(v, list) else v) for k, v in summary.items()}))
 
 
