@@ -181,8 +181,15 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .nMeta{font-size:10.5px;color:var(--muted);display:flex;gap:6px;align-items:center;margin-bottom:2px}
 .nMeta b{font-weight:500;color:var(--fg)} .nItem.mine .nMeta b{color:var(--teal)}
 .nText{white-space:pre-wrap;overflow-wrap:anywhere}
-.nDel{all:unset;cursor:pointer;margin-left:auto;color:var(--muted);font-size:13px;line-height:1;padding:0 2px}
-.nDel:hover{color:var(--red)}
+.nActs{margin-left:auto;display:flex;gap:2px}
+.nAct{all:unset;cursor:pointer;color:var(--muted);font-size:11px;line-height:1;padding:3px 6px;border-radius:6px;display:inline-flex;align-items:center;gap:4px}
+.nAct:hover{color:var(--fg);background:rgba(255,255,255,.06)} .nAct:focus-visible{outline:2px solid var(--cyan)}
+.nAct.del:hover,.nAct.armed{color:var(--red)} .nAct.armed{background:color-mix(in srgb,var(--red) 14%,transparent);font-weight:500}
+.nEdited{font-style:italic}
+.nEdit{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.nEdit textarea{min-height:54px;resize:vertical;background:var(--bg);border:1px solid var(--cyan);border-radius:8px;padding:7px 9px;font:inherit;font-size:12.5px;color:var(--fg);box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 15%,transparent);outline:none}
+.nEdit .row{display:flex;gap:6px;justify-content:flex-end}
+.lastNote{cursor:pointer}
 .nAdd{display:flex;gap:6px;align-items:flex-end}
 .nAdd textarea{flex:1;min-height:38px;max-height:140px;resize:vertical;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:12.5px;color:var(--fg)}
 .nAdd textarea:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 18%,transparent)}
@@ -388,7 +395,7 @@ const ICON = {
   box:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12h8"/></svg>'
 };
 
-const S = { notesOpen:new Set(), freshNote:null, listings:new Map(), track:new Map(), meta:{}, settings:{}, tab:"places", tile:null, mapMode:"all", openId:null, popId:null, sideId:null, flash:new Set(), lastSync:0, gaugesShown:false, listShown:false, prevNums:{}, db:null, user:null, me:null, names:{}, loaded:false };
+const S = { notesOpen:new Set(), freshNote:null, editNote:null, delArm:null, listings:new Map(), track:new Map(), meta:{}, settings:{}, tab:"places", tile:null, mapMode:"all", openId:null, popId:null, sideId:null, flash:new Set(), lastSync:0, gaugesShown:false, listShown:false, prevNums:{}, db:null, user:null, me:null, names:{}, loaded:false };
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const rand = n => "R" + Number(n).toLocaleString("en-ZA").replace(/[, ]/g," ");
@@ -620,16 +627,22 @@ function renderTabs(){
   const tabs=[["places","All matching",listFor("places").length],["shortlist","Our shortlist",all.filter(l=>base(l)&&SHORT.includes(statusOf(l.id))).length],["new","New today",all.filter(l=>base(l)&&isNew(l)).length],["gone","No longer listed",all.filter(l=>!base(l)).length]];
   $("tabs").innerHTML=tabs.map(([k,t,c])=>`<button class="pill tab" role="tab" aria-pressed="${S.tab===k}" aria-selected="${S.tab===k}" data-tab="${k}">${t}<span class="c num">${c}</span></button>`).join("");
 }
+function grabTA(root){ const o={vals:{},focus:null,sel:null}; if(!root) return o; root.querySelectorAll("textarea[data-key]").forEach(ta=>{ o.vals[ta.dataset.key]=ta.value; if(ta===document.activeElement){ o.focus=ta.dataset.key; o.sel=[ta.selectionStart,ta.selectionEnd]; } }); return o; }
+function putTA(root,o){ if(!root) return; root.querySelectorAll("textarea[data-key]").forEach(ta=>{ const k=ta.dataset.key; if(o.vals[k]!=null) ta.value=o.vals[k]; if(o.focus===k){ ta.focus(); try{ ta.setSelectionRange(o.sel[0],o.sel[1]); }catch(e){} } }); if(!S.editNote) root.querySelectorAll(".nList").forEach(nl=>nl.scrollTop=nl.scrollHeight); }
+function rerenderNotes(){ renderList(); if(S.openId) renderDrawer(); }
 function ago(iso){ const d=(Date.now()-new Date(iso).getTime())/1000; if(!(d>=0)) return ""; if(d<60) return "just now"; if(d<3600) return Math.round(d/60)+" min ago"; if(d<86400) return Math.round(d/3600)+" h ago"; if(d<86400*7) return Math.round(d/86400)+" d ago"; return new Date(iso).toLocaleDateString("en-ZA",{day:"numeric",month:"short"}); }
 function whoIs(by){ if(!by) return "Someone"; if(S.me && by===S.me) return "You"; const n=S.names[by]; return n && n!=="someone" && n!=="you" ? n.split(" ")[0] : "Partner"; }
 function notesOf(id){ return (tr(id).log||[]).slice().sort((a,b)=>String(a.at).localeCompare(String(b.at))); }
 function notesBlock(id, where){
   const log=notesOf(id);
-  const items=log.length ? log.map(n=>`<div class="nItem ${n.by&&n.by===S.me?"mine":""} ${S.freshNote===n.id?"fresh":""}"><div class="nMeta"><b>${esc(whoIs(n.by))}</b><span>${esc(ago(n.at))}</span>${n.by&&n.by===S.me?`<button class="nDel" data-delnote="${esc(id)}" data-nid="${esc(n.id)}" title="Delete this note" aria-label="Delete this note">×</button>`:""}</div><div class="nText">${esc(n.text)}</div></div>`).join("")
+  const items=log.length ? log.map(n=>{ const key=id+"|"+n.id, editing=S.editNote===key, armed=S.delArm===key;
+      return `<div class="nItem ${n.by&&n.by===S.me?"mine":""} ${S.freshNote===n.id?"fresh":""}"><div class="nMeta"><b>${esc(whoIs(n.by))}</b><span>${esc(ago(n.at))}</span>${n.edited?`<span class="nEdited" title="Edited ${esc(ago(n.edited))}${n.editedBy?" by "+esc(whoIs(n.editedBy)):""}">· edited</span>`:""}
+        ${editing?"":`<span class="nActs"><button class="nAct" data-editnote="${esc(key)}" title="Edit this note" aria-label="Edit this note"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg>Edit</button><button class="nAct del ${armed?"armed":""}" data-delnote="${esc(key)}" title="${armed?"Click again to delete":"Delete this note"}" aria-label="${armed?"Confirm delete":"Delete this note"}">${armed?"Delete?":`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Delete`}</button></span>`}</div>
+        ${editing?`<div class="nEdit"><textarea data-key="edit:${esc(key)}" data-nedit="${esc(key)}" aria-label="Edit note">${esc(n.text)}</textarea><div class="row"><button class="btn small" data-canceledit="1">Cancel</button><button class="btn small primary" data-saveedit="${esc(key)}">Save</button></div></div>`:`<div class="nText">${esc(n.text)}</div>`}</div>`; }).join("")
     : `<div class="nEmpty">No notes yet. Jot down what the agent said, viewing times, deposit, anything.</div>`;
   return `<div class="notesBox" data-notes="${esc(id)}">
     <div class="nList">${items}</div>
-    <div class="nAdd"><textarea data-nin="${esc(id)}" data-where="${where}" rows="1" placeholder="Add a note…" title="Enter to save · Shift+Enter for a new line"></textarea><button class="btn small primary" data-addnote="${esc(id)}" data-where="${where}">Add</button></div>
+    <div class="nAdd"><textarea data-key="add:${esc(id)}" data-nin="${esc(id)}" data-where="${where}" rows="1" placeholder="Add a note…" title="Enter to save · Shift+Enter for a new line"></textarea><button class="btn small primary" data-addnote="${esc(id)}" data-where="${where}">Add</button></div>
   </div>`;
 }
 async function addNote(id, text){
@@ -652,7 +665,7 @@ function card(l){
     <div class="facts"><span class="fact"><b>${l.beds}</b> bed</span><span class="fact"><b>${l.baths}</b> bath</span>${l.size_m2?`<span class="fact"><b>${l.size_m2}</b> m²</span>`:""}<span class="fact">TecWise <b>~${l.min_tecwise}</b> min</span><span class="fact">Drive <b>~${l.min_drive}</b> min</span></div>
     <div class="facts">${facts.join("")}</div>
     ${t.note?`<div class="note">${esc(t.note)}</div>`:""}
-    ${(()=>{ const log=notesOf(l.id); if(S.notesOpen.has(l.id)) return notesBlock(l.id,"card"); const ln=log[log.length-1]; return ln?`<div class="lastNote"><b>${esc(whoIs(ln.by))}</b> <span class="when">· ${esc(ago(ln.at))}</span> — ${esc(ln.text)}</div>`:""; })()}
+    ${(()=>{ const log=notesOf(l.id); if(S.notesOpen.has(l.id)) return notesBlock(l.id,"card"); const ln=log[log.length-1]; return ln?`<div class="lastNote" data-notestoggle="${esc(l.id)}" title="Open notes"><b>${esc(whoIs(ln.by))}</b> <span class="when">· ${esc(ago(ln.at))}</span> — ${esc(ln.text)}</div>`:""; })()}
     <div class="foot"><span class="src">${esc(l.source)}${l.agency?` · ${esc(l.agency)}`:""}</span>
       <span class="row" style="flex-wrap:nowrap">${st!=="new"?`<span class="status st-${st}">${STATUS_LABEL[st]}</span>`:""}<button class="nBtn" data-notestoggle="${esc(l.id)}" aria-expanded="${S.notesOpen.has(l.id)}" title="Notes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>Notes${(t.log||[]).length?`<span class="c">${(t.log||[]).length}</span>`:""}</button><button class="heart" data-heart="${esc(l.id)}" aria-pressed="${fav}">${fav?"♥ Saved":"♡ Interested"}</button></span></div>
   </article>`;
@@ -663,10 +676,9 @@ function renderList(){
   const arr=listFor(S.tab);
   if(!arr.length){ const why=S.tab==="shortlist"?"Tap ♡ Interested on a place to add it to your shortlist.":S.tab==="new"?"Nothing new came in on the last search.":S.tab==="gone"?"Every place is still listed.":"No places match these filters. Try a higher max, another area, or switch a filter off.";
     $("view").innerHTML=`<div class="empty"><h3>Nothing to show</h3>${why}</div>`; return; }
-  const keepN={}; let focusN=null, selN=null; $("view").querySelectorAll("textarea[data-nin]").forEach(ta=>{ keepN[ta.dataset.nin]=ta.value; if(ta===document.activeElement){ focusN=ta.dataset.nin; selN=[ta.selectionStart,ta.selectionEnd]; } });
+  const keepN=grabTA($("view"));
   const enter=!S.listShown; S.listShown=true; $("view").innerHTML=`<div class="grid ${enter?"enter":""}">${arr.map(card).join("")}</div>`; $("view").querySelectorAll(".card").forEach((c,i)=>{ c.style.setProperty("--i",Math.min(i,30)); if(S.flash.has(c.dataset.id)) c.classList.add("flash"); });
-  $("view").querySelectorAll("textarea[data-nin]").forEach(ta=>{ const k=ta.dataset.nin; if(keepN[k]!=null) ta.value=keepN[k]; if(focusN===k){ ta.focus(); try{ ta.setSelectionRange(selN[0],selN[1]); }catch(e){} } });
-  $("view").querySelectorAll(".nList").forEach(nl=>nl.scrollTop=nl.scrollHeight);
+  putTA($("view"),keepN);
 }
 function renderHeader(){
   $("updated").innerHTML = S.meta.last_run ? `Data from the <span class="num">${esc(S.meta.last_run)}</span> search · 3 bed · 2 bath · ≤ R16 000 · within ~10 min of TecWise or Drive` : (S.loaded?"No search results yet":"Loading listings…");
@@ -711,7 +723,7 @@ function renderDrawer(first){
   const t=tr(l.id), st=statusOf(l.id), phone=phoneOf(l), email=emailOf(l), msg=fillTemplate(l), pc=petClass(l);
   const activeId=document.activeElement && document.activeElement.closest && document.activeElement.closest("#drawer") ? document.activeElement.id : null;
   const keep={}; ["dPhone","dEmail","dNote","dView"].forEach(k=>{ const el=$(k); if(el && el===document.activeElement) keep[k]=el.value; });
-  const dTa=$("drawer").querySelector("textarea[data-nin]"); const dKeep=dTa?dTa.value:null, dFocus=dTa&&dTa===document.activeElement;
+  const dKeepTA=grabTA($("drawer"));
   const who=t.updatedBy?(S.names[t.updatedBy]||"someone"):null;
   const wa=intl(phone)?`https://wa.me/${intl(phone)}?text=${encodeURIComponent(msg)}`:"";
   const origin=encodeURIComponent(l.geo==="exact"?l.lat+","+l.lng:(l.address?l.address+", ":"")+l.suburb+", Centurion");
@@ -759,7 +771,7 @@ function renderDrawer(first){
      <div class="sec"><div class="label">Notes log · who said what</div>${notesBlock(l.id,"drawer")}</div>
    </div>`;
   if(activeId && $(activeId)) $(activeId).focus();
-  { const ta=$("drawer").querySelector("textarea[data-nin]"); if(ta && dKeep!=null){ ta.value=dKeep; if(dFocus) ta.focus(); } const nl=$("drawer").querySelector(".nList"); if(nl) nl.scrollTop=nl.scrollHeight; }
+  putTA($("drawer"),dKeepTA); { const nl=$("drawer").querySelector(".nList"); if(nl && !S.editNote) nl.scrollTop=nl.scrollHeight; }
   if(first) $("dClose").focus();
 }
 async function saveTrack(id, patch){
@@ -777,7 +789,15 @@ document.addEventListener("click", async e=>{
   const heart=el.closest("[data-heart]"); if(heart){ e.stopPropagation(); const id=heart.dataset.heart, st=statusOf(id); const rc=heart.getBoundingClientRect(); if(!SHORT.includes(st)) hearts(rc); else puff(rc); await saveTrack(id,{status:SHORT.includes(st)?"new":"interested"}); toast(SHORT.includes(statusOf(id))?"Added to your shortlist":"Removed from shortlist"); return; }
   const nt=el.closest("[data-notestoggle]"); if(nt){ e.stopPropagation(); const id=nt.dataset.notestoggle; if(S.notesOpen.has(id)) S.notesOpen.delete(id); else S.notesOpen.add(id); renderList(); if(S.notesOpen.has(id)){ const ta=document.querySelector(`#view textarea[data-nin="${CSS.escape(id)}"]`); if(ta) ta.focus(); } return; }
   const an=el.closest("[data-addnote]"); if(an){ e.stopPropagation(); const id=an.dataset.addnote; const box=an.closest(".notesBox"); const ta=box&&box.querySelector("textarea[data-nin]"); if(ta && ta.value.trim()){ const v=ta.value; ta.value=""; const ok=await addNote(id,v); if(ok){ sparkle(an.getBoundingClientRect(),"contacted"); toast("Note saved for both of you"); } else ta.value=v; } else if(ta) ta.focus(); return; }
-  const dn=el.closest("[data-delnote]"); if(dn){ e.stopPropagation(); const id=dn.dataset.delnote, nid=dn.dataset.nid; const log=(tr(id).log||[]).filter(n=>n.id!==nid); await saveTrack(id,{log}); toast("Note deleted"); return; }
+  const dn=el.closest("[data-delnote]"); if(dn){ e.stopPropagation(); const key=dn.dataset.delnote; const [id,nid]=key.split("|");
+    if(S.delArm!==key){ S.delArm=key; clearTimeout(S.delT); S.delT=setTimeout(()=>{ if(S.delArm===key){ S.delArm=null; rerenderNotes(); } },3500); rerenderNotes(); return; }
+    S.delArm=null; const gone=(tr(id).log||[]).find(n=>n.id===nid); const log=(tr(id).log||[]).filter(n=>n.id!==nid); if(gone) puff(dn.getBoundingClientRect()); await saveTrack(id,{log}); toast("Note deleted"); return; }
+  const ed=el.closest("[data-editnote]"); if(ed){ e.stopPropagation(); S.editNote=ed.dataset.editnote; S.delArm=null; rerenderNotes(); const ta=document.querySelector(`textarea[data-nedit="${CSS.escape(S.editNote)}"]`); if(ta){ ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); } return; }
+  if(el.closest("[data-canceledit]")){ e.stopPropagation(); S.editNote=null; rerenderNotes(); return; }
+  const se=el.closest("[data-saveedit]"); if(se){ e.stopPropagation(); const key=se.dataset.saveedit; const [id,nid]=key.split("|"); const ta=se.closest(".nEdit").querySelector("textarea"); const v=(ta?ta.value:"").trim();
+    if(!v){ ta&&ta.focus(); toast("A note can't be empty. Use Delete to remove it."); return; }
+    const log=(tr(id).log||[]).map(n=>n.id===nid ? Object.assign({},n,{text:v.slice(0,2000),edited:new Date().toISOString(),editedBy:S.me||null}) : n);
+    S.editNote=null; S.freshNote=nid; setTimeout(()=>{ if(S.freshNote===nid) S.freshNote=null; },1500); await saveTrack(id,{log}); toast("Note updated"); return; }
   if(el.closest(".notesBox")) return;
   const op=el.closest("[data-open]"); if(op){ openDrawer(op.dataset.open); return; }
   const pop=el.closest("[data-pop]"); if(pop){ S.popId = S.popId===pop.dataset.pop ? null : pop.dataset.pop; renderMap(); return; }
@@ -798,7 +818,8 @@ document.addEventListener("click", async e=>{
   const zb=el.closest("#zIn,#zOut,#zReset"); if(zb){ const a=$("mapArea"); if(zb.id==="zReset"){ VIEW.z=1; VIEW.tx=0; VIEW.ty=0; renderMap(); } else zoomAt(zb.id==="zIn"?1.35:1/1.35, a.clientWidth/2, a.clientHeight/2); return; }
   const dk=el.closest("#dAll,#dOk,#dSaved"); if(dk){ S.mapMode={dAll:"all",dOk:"ok",dSaved:"saved"}[dk.id]; ["dAll","dOk","dSaved"].forEach(i=>$(i).setAttribute("aria-pressed",String(i===dk.id))); renderMap(); return; }
 });
-document.addEventListener("keydown", e=>{ const ta=e.target.closest&&e.target.closest("textarea[data-nin]"); if(ta && e.key==="Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); const b=ta.closest(".notesBox").querySelector("[data-addnote]"); if(b) b.click(); return; } if(ta && e.key==="Escape" && ta.dataset.where==="card"){ e.stopPropagation(); S.notesOpen.delete(ta.dataset.nin); renderList(); return; } if(e.key==="Enter" && ta) return;
+document.addEventListener("keydown", e=>{ const et=e.target.closest&&e.target.closest("textarea[data-nedit]"); if(et){ if(e.key==="Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); const b=et.closest(".nEdit").querySelector("[data-saveedit]"); if(b) b.click(); } else if(e.key==="Escape"){ e.preventDefault(); e.stopPropagation(); S.editNote=null; rerenderNotes(); } return; }
+  const ta=e.target.closest&&e.target.closest("textarea[data-nin]"); if(ta && e.key==="Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); const b=ta.closest(".notesBox").querySelector("[data-addnote]"); if(b) b.click(); return; } if(ta && e.key==="Escape" && ta.dataset.where==="card"){ e.stopPropagation(); S.notesOpen.delete(ta.dataset.nin); renderList(); return; } if(e.key==="Enter" && ta) return;
   if(e.key==="Escape"){ if(S.openId) closeDrawer(); else if(S.popId){ S.popId=null; renderMap(); } else if(S.sideId){ S.sideId=null; renderSide(); renderMap(); } } if(e.key==="Enter" && e.target.classList && e.target.classList.contains("card")) openDrawer(e.target.dataset.id); });
 ["fArea","fMax","fPets","sort"].forEach(id=>$(id).addEventListener("change",()=>{ store.set(id,$(id).value); render(); }));
 $("q").addEventListener("input",()=>render());
