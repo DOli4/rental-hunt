@@ -425,6 +425,7 @@ function toast(t,kind){ const el=$("toast"); const [c,ic]=TOAST_KIND[kind]||TOAS
   el.hidden=false; el.classList.remove("go"); void el.offsetWidth; el.classList.add("go"); clearTimeout(toast.t); toast.t=setTimeout(()=>{ el.hidden=true; el.classList.remove("go"); }, kind==="partner"?4200:2600); }
 
 const tr = id => S.track.get(id) || {};
+const plain = v => JSON.parse(JSON.stringify(v ?? null));
 const statusOf = id => tr(id).status || "new";
 const phoneOf = l => tr(l.id).phone || l.phone || "";
 const emailOf = l => tr(l.id).email || l.email || "";
@@ -797,11 +798,18 @@ function renderDrawer(first){
   if(first) $("dClose").focus();
 }
 async function saveTrack(id, patch){
-  const cur=tr(id), next=Object.assign({},cur,patch,{updatedAt:new Date().toISOString(),updatedBy:S.me||cur.updatedBy||null});
+  const prev=tr(id), cur=plain(prev)||{};
+  const next=plain(Object.assign({},cur,patch,{updatedAt:new Date().toISOString(),updatedBy:S.me||cur.updatedBy||null}));
   S.track.set(id,next); render();
-  if(!S.db){ toast("Couldn't save: open this page signed in to Claude","error"); return false; }
-  try{ await S.db.doc("track/"+id).set(next); return true; }
-  catch(e){ toast(e&&e.code==="permission_denied"?"You have view-only access, ask Dieter for edit access":"Couldn't save, try again","error"); return false; }
+  if(!S.db){ S.track.set(id,prev); render(); toast("Couldn't save: open this page signed in to Claude","error"); return false; }
+  for(let attempt=0; attempt<2; attempt++){
+    try{ await S.db.doc("track/"+id).set(next); return true; }
+    catch(e){ const code=e&&e.code; console.warn("[rental] save failed", code, e&&e.message);
+      if(attempt===0 && (code==="unavailable"||code==="resource_exhausted")){ await new Promise(r=>setTimeout(r,600+Math.random()*600)); continue; }
+      S.track.set(id,prev); render();
+      toast(code==="invalid_argument"?"Couldn't save: this view can't write. Ask Dieter to make you a Contributor.":code==="quota_exceeded"?"The shared store is full":`Couldn't save (${code||"error"}). Try again.`,"error"); return false; }
+  }
+  return false;
 }
 async function copy(text){ try{ await navigator.clipboard.writeText(text); toast("Copied","copy"); }catch(e){ toast("Select the text and copy it","error"); } }
 
@@ -897,7 +905,7 @@ const _render=render; render=function(){ _render(); countUps(); };
   db.collection("listings").onSnapshot(snap=>{ S.lastSync=Date.now(); updSync(); S.listings=new Map(snap.docs.map(d=>[d.id,Object.assign({id:d.id},d.data())])); S.loaded?render():ready(); },
     ()=>{ $("banner").hidden=false; $("banner").textContent="Couldn't load places right now. Reload in a minute."; });
   db.collection("track").onSnapshot(async snap=>{
-    const before=S.track; S.track=new Map(snap.docs.map(d=>[d.id,d.data()])); S.lastSync=Date.now(); updSync();
+    const before=S.track; S.track=new Map(snap.docs.map(d=>[d.id,plain(d.data())])); S.lastSync=Date.now(); updSync();
     if(S.loaded){ for(const [id,t] of S.track){ const o=before.get(id)||{}; if(t.updatedBy && t.updatedBy!==S.me && (t.status!==o.status || t.note!==o.note || t.phone!==o.phone || (t.log||[]).length>(o.log||[]).length)){
       const l=S.listings.get(id); S.flash.add(id); setTimeout(()=>{ S.flash.delete(id); },2600);
       const who=(S.names[t.updatedBy]&&S.names[t.updatedBy]!=="someone")?S.names[t.updatedBy]:"Your partner";
