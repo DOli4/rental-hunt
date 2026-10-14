@@ -1,7 +1,7 @@
 # Centurion Rental Hunt
 
-Dieter's hub for finding a 3-bedroom, 2-bathroom rental under R16 000 near InsideOut (Lenchen Ave,
-Centurion) and Drive (Irene).
+Dieter's hub for finding a 3-bedroom, 2-bathroom rental under R16 000 near TecWise (Estcourt Ave,
+Wierdapark) and Drive (Irene).
 
 - **Dashboard:** https://claude.ai/artifact/LeTuEg4SwbQ3qU7gM9HuqV (private; share it from the page's
   Share menu, as Contributor, so the other person can mark places and add notes)

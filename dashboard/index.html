@@ -61,14 +61,21 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .marker.no{background:transparent;box-shadow:none}
 .marker.saved::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--white)}
 .marker.dimmed{opacity:.28}
-.anchor{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
-.anchor span{background:var(--white);color:#111;border-radius:999px;font-size:11px;font-weight:500;padding:3px 10px;white-space:nowrap}
-.anchor i{width:10px;height:10px;border-radius:2px;background:var(--white);transform:rotate(45deg);box-shadow:0 0 0 5px rgba(244,247,245,.15)}
+.anchor{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;z-index:3}
+.anchor .tag{background:var(--c);color:#111;border-radius:10px;padding:5px 10px;font-size:11px;line-height:1.25;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.5);white-space:nowrap}
+.anchor .tag b{font-weight:600;display:block;font-size:12px}
+.anchor .tag span{opacity:.75}
+.anchor .pinA{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--c);display:grid;place-items:center;box-shadow:0 0 0 7px color-mix(in srgb,var(--c) 22%,transparent),0 0 30px color-mix(in srgb,var(--c) 50%,transparent)}
+.anchor .pinA svg{transform:rotate(45deg)}
+.mapLegend{position:absolute;right:14px;top:14px;z-index:3;background:rgba(31,34,33,.9);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:12px;padding:9px 11px;font-size:11px;display:flex;flex-direction:column;gap:6px;max-width:210px}
+.mapLegend .li{display:flex;align-items:center;gap:8px}
+.mapLegend .sw{width:12px;height:12px;border-radius:50%;flex:none}
+.mapArea{cursor:grab;touch-action:none;overflow:hidden}
+.mapArea.dragging{cursor:grabbing}
 .pop{position:absolute;z-index:4;width:260px;background:rgba(31,34,33,.94);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}
 .pop .ph{display:flex;align-items:center;gap:8px;background:var(--panel-2);border-radius:999px;padding:6px 10px;font-size:12px}
 .pop .row2{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--panel-2);border-radius:999px;padding:6px 12px;font-size:12px}
 .pop .act{display:flex;gap:6px}
-.mapNote{position:absolute;left:16px;bottom:62px;font-size:11px;color:var(--muted);z-index:2;max-width:60%}
 .dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;background:rgba(37,41,40,.85);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:999px;padding:5px;z-index:3}
 .dock .iconbtn{width:30px;height:30px}
 .dock .pill{padding:5px 11px}
@@ -181,7 +188,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
   .rail.left{order:1} .gauges{order:3}
   .lower{grid-template-columns:1fr} .panel+.panel{border-left:0;border-top:1px solid var(--line)}
   .search input{width:120px}
-  .mapNote{display:none}
+  .mapLegend{left:10px;right:auto;top:10px;max-width:180px;font-size:10px}
   .drawer{top:auto;height:90%;width:100%;border-left:0;border-top:1px solid var(--line);border-radius:18px 18px 0 0;padding-left:env(safe-area-inset-left,0px)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -198,7 +205,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
     <label class="sel">Pets
       <select id="fPets"><option value="any">Any</option><option value="ok">Pets OK</option><option value="notno">Hide no-pets</option></select></label>
     <label class="sel">Sort
-      <select id="sort"><option value="price">Cheapest</option><option value="drive">Closest to Drive</option><option value="insideout">Closest to InsideOut</option><option value="best">Best match</option><option value="new">Newest</option></select></label>
+      <select id="sort"><option value="price">Cheapest</option><option value="drive">Closest to Drive</option><option value="tecwise">Closest to TecWise</option><option value="best">Best match</option><option value="new">Newest</option></select></label>
     <label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Search suburb, estate, agent"></label>
   </div>
 
@@ -209,7 +216,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
         <div class="sub" id="updated">Loading listings…</div>
       </div>
       <div class="mini"><span class="lbl">Rent spread</span><svg id="chPrice" viewBox="0 0 210 60"></svg><div class="ends num" id="chPriceEnds"></div></div>
-      <div class="mini"><span class="lbl">Minutes to Drive</span><svg id="chDrive" viewBox="0 0 210 60"></svg><div class="ends num" id="chDriveEnds"></div></div>
+      <div class="mini"><span class="lbl">Minutes to nearest work</span><svg id="chDrive" viewBox="0 0 210 60"></svg><div class="ends num" id="chDriveEnds"></div></div>
       <div class="banner" id="banner" hidden></div>
       <div class="ctrls">
         <button class="pill" id="tFibre" aria-pressed="false">Fibre</button>
@@ -219,14 +226,25 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
     </div>
 
     <div class="mapArea" id="mapArea">
-      <canvas id="map" aria-label="Dot map of places around InsideOut and Drive"></canvas>
+      <canvas id="map" aria-label="Map of places around TecWise and Drive"></canvas>
       <div id="overlay"></div>
-      <div class="mapNote">Glow = where places cluster · rings ≈ 10 min drive · pins without a street address sit at the suburb centre</div>
+      <div class="mapLegend" aria-label="Map legend">
+        <div class="li"><span class="sw" style="background:#6cb6ff"></span>Work · TecWise (Wierdapark)</div>
+        <div class="li"><span class="sw" style="background:#f6c453"></span>Work · Drive (Irene)</div>
+        <div class="li"><span class="sw" style="background:var(--green)"></span>Pets OK</div>
+        <div class="li"><span class="sw" style="background:var(--orange)"></span>Pets: ask</div>
+        <div class="li"><span class="sw" style="background:var(--red)"></span>No pets / no cats</div>
+        <div class="li"><span class="sw" style="border:2px solid var(--white)"></span>On our shortlist</div>
+        <div class="muted">Dashed circles ≈ 10 min drive. Drag to move, scroll or pinch to zoom.</div>
+      </div>
       <div class="dock" role="toolbar" aria-label="Map filters">
         <button class="iconbtn" id="dAll" title="Show all markers" aria-pressed="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg></button>
         <button class="iconbtn" id="dOk" title="Pets OK only" aria-pressed="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></button>
         <button class="iconbtn" id="dSaved" title="Our shortlist only" aria-pressed="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button>
         <span class="pill num" id="dCount">0 places</span>
+        <button class="iconbtn" id="zIn" title="Zoom in" aria-label="Zoom in">+</button>
+        <button class="iconbtn" id="zOut" title="Zoom out" aria-label="Zoom out">−</button>
+        <button class="iconbtn" id="zReset" title="Reset map" aria-label="Reset map"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
       </div>
     </div>
 
@@ -261,7 +279,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const ANCHORS = { insideout:{name:"InsideOut", lat:-25.8530, lng:28.1900}, drive:{name:"Drive", lat:-25.8548, lng:28.2476} };
+const ANCHORS = { tecwise:{name:"TecWise", sub:"Estcourt Ave, Wierdapark", lat:-25.8722, lng:28.1590, color:"#6cb6ff"}, drive:{name:"Drive", sub:"Guernsey Business Park, Irene", lat:-25.8538, lng:28.2506, color:"#f6c453"} };
 const STATUSES = [["new","New"],["interested","Interested"],["contacted","Contacted"],["viewing","Viewing booked"],["applied","Applied"],["no","Not for us"]];
 const STATUS_LABEL = Object.fromEntries(STATUSES);
 const SHORT = ["interested","contacted","viewing","applied"];
@@ -290,7 +308,7 @@ function petClass(l){ const p=(l.pets||"").toLowerCase(); if(p.startsWith("yes")
 function petLabel(l){ const p=(l.pets||"").toLowerCase(); if(p.includes("dogs only")) return "Dogs only, no cats"; if(p==="no") return "No pets"; if(p.includes("small")) return "Small pets OK"; if(p.startsWith("yes")) return "Pets OK"; return "Pets: ask"; }
 const fibreOk = l => /^(yes|ready)|free/i.test(l.fibre||"");
 const secOk = l => /24|guard|boom|access|estate|gated|electric|cctv|secur/i.test(l.security||"");
-function score(l){ let s=0; const pc=petClass(l); if(pc==="ok") s+=3; if(pc==="no") s-=3; if(fibreOk(l)) s+=1; if(secOk(l)) s+=1; s+=(16000-l.price)/4000; s-=Math.min(l.min_drive,l.min_insideout)/10; if(l.tier!=="core") s-=1; return s; }
+function score(l){ let s=0; const pc=petClass(l); if(pc==="ok") s+=3; if(pc==="no") s-=3; if(fibreOk(l)) s+=1; if(secOk(l)) s+=1; s+=(16000-l.price)/4000; s-=Math.min(l.min_drive,l.min_tecwise)/10; if(l.tier!=="core") s-=1; return s; }
 const isNew = l => S.meta.last_run && l.first_seen===S.meta.last_run && l.first_seen!==S.meta.first_run;
 const activeAll = () => [...S.listings.values()].filter(l=>l.active!==false);
 
@@ -322,7 +340,7 @@ function listFor(tab){
     return passesBase(l);
   });
   const k=$("sort").value;
-  arr.sort((a,b)=> k==="price"?a.price-b.price : k==="drive"?a.min_drive-b.min_drive : k==="insideout"?a.min_insideout-b.min_insideout : k==="new"?String(b.first_seen).localeCompare(String(a.first_seen)) : score(b)-score(a));
+  arr.sort((a,b)=> k==="price"?a.price-b.price : k==="drive"?a.min_drive-b.min_drive : k==="tecwise"?a.min_tecwise-b.min_tecwise : k==="new"?String(b.first_seen).localeCompare(String(a.first_seen)) : score(b)-score(a));
   return arr;
 }
 
@@ -340,11 +358,11 @@ function renderCharts(){
   [minP,maxP].forEach(p=>{ s+=`<line x1="${px(p)}" y1="6" x2="${px(p)}" y2="${base}" stroke="var(--muted)" stroke-dasharray="1 2"/><circle cx="${px(p)}" cy="6" r="2.2" fill="var(--white)"/><circle cx="${px(p)}" cy="${base}" r="2.2" fill="var(--white)"/>`; });
   $("chPrice").innerHTML=s; $("chPriceEnds").innerHTML=`<span>${rand(minP)}</span><span>${rand(maxP)}</span>`;
   // minutes to Drive: peaks
-  const dl=3, dh=25, m=dh-dl; const c=Array(m+1).fill(0); all.forEach(l=>c[Math.min(m,Math.max(0,l.min_drive-dl))]++);
+  const dl=3, dh=25, m=dh-dl; const c=Array(m+1).fill(0); all.forEach(l=>c[Math.min(m,Math.max(0,Math.min(l.min_drive,l.min_tecwise)-dl))]++);
   const cm=Math.max(...c,1), sw=W/(m+1); let t=`<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--line)" stroke-dasharray="1 3"/>`;
   c.forEach((v,i)=>{ if(!v) return; const x=i*sw+sw/2, h=6+v/cm*30; t+=`<path d="M${x-sw*.7} ${base} L${x} ${base-h} L${x+sw*.7} ${base}Z" fill="${i<=10-dl?"var(--teal)":"var(--fg)"}" fill-opacity="${i<=10-dl?.85:.45}"/>`; });
   const t10=(10-dl)*sw+sw/2; t+=`<line x1="${t10}" y1="4" x2="${t10}" y2="${base}" stroke="var(--teal)" stroke-dasharray="1 2"/><text x="${t10+4}" y="10" font-size="8" fill="var(--teal)" font-family="Lexend">10 min</text>`;
-  $("chDrive").innerHTML=t; const md=all.map(l=>l.min_drive); $("chDriveEnds").innerHTML=`<span>${Math.min(...md)} min</span><span>${Math.max(...md)} min</span>`;
+  $("chDrive").innerHTML=t; const md=all.map(l=>Math.min(l.min_drive,l.min_tecwise)); $("chDriveEnds").innerHTML=`<span>${Math.min(...md)} min</span><span>${Math.max(...md)} min</span>`;
 }
 
 /* ---------- gauges ---------- */
@@ -372,52 +390,77 @@ function renderGauges(){
   $("gauges").querySelectorAll("[data-jump]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.jump===(S.tab==="shortlist"?"shortlist":"places"))));
 }
 
-/* ---------- map ---------- */
-let mapGeom=null;
+/* ---------- map (drawn from OpenStreetMap roads; drag to pan, scroll / pinch / buttons to zoom) ---------- */
+const ROADS_RAW = "0~N14~-257704,281877,-13,27,-26,20,-76,-8,-57,-19,-67,-75,-25,-13,-46,-5,-313,36,-58,-1,-58,-17,-109,-74,-293,-75;0~N14~-259119,280288,45,83,26,72,30,231,71,210,14,150,30,156,13,202,18,80,27,73,102,221;0~N14~-258742,281776,-110,-241,-33,-100,-14,-85,-7,-156,-30,-160,-10,-128,-74,-227,-34,-247,-81,-166;0~N14~-258870,281664,319,82,82,59,46,23,33,8,63,1,318,-36,41,6,32,18,61,70,56,17,62,10,36,-21;2~M18~-257781,281938,-34,-4,-80,25,-75,7,-181,59,-137,47,-97,49,-213,85;2~M18~-258598,282204,213,-84,97,-49,298,-105,81,-4,92,-31,19,1;2~R50~-258087,282579,-33,45,-38,3,-71,-27,-15,1,-184,138,-34,46,-49,119,-35,56,-50,44,25,-19;2~R50~-258362,282691,-70,54,-40,63;2~R50~-258086,282579,-38,50,-28,2,-86,-29,-47,31;0~R21~-259824,282520,268,40,276,59,86,-9,154,-57,334,-12,189,-26,118,-29,38,-15,164,-88,143,-104;0~R21~-258053,282281,-143,104,-197,103,-176,40,-206,21,-264,7,-154,57,-98,9,-247,-55,-317,-48;2~M10~-258198,282524,56,-163,-3,-118,37,-35,13,-24,1,-42,-21,-30,-41,-25,-33,-104,-32,-61,3,-103,-11,-154,-37,-110,-44,-68,-26,-132,-40,-122,29,-105;2~M10~-258045,282961,-6,-21,7,20;2~M10~-258135,282228,-12,27;2~M10~-258242,281627,8,23;2~M10~-258150,282399,-47,126;2~M10~-258115,282112,-45,-28,-31,-101,-30,-61;2~R55~-259162,280999,-36,-7,374,70,67,22,286,0,64,15,120,62,44,7,100,-9,151,-69,39,0,119,57,47,-5;2~R55~-259348,280964,-53,-14,-57,-32,70,39,190,35;2~R55~-257787,281144,-43,6,-112,-54,-51,-3,-155,69,-98,9,-41,-8,-114,-59,-69,-17,-292,-2,-61,-20,-277,-55;2~R55~-259215,280989,-102,-19;2~R55~-259528,280876,70,42;1~R21~-257742,281992,-79,15,-22,24,-35,92,-126,124,-49,34;1~R21~-258054,282279,44,-30,133,-131,30,-84,16,-24,88,-24;0~N1~-259530,281346,165,65,158,89;0~N1~-257663,282751,-223,-57,-50,-22,-86,-57,-142,-60,-21,-14,-61,-57,-139,-137,-42,-32,-101,-45,-35,-29,-28,-42,-51,-204,-100,-219;0~N1~-258743,281766,101,222,15,50,20,101,18,59,17,29,18,20,33,24,104,48,40,33,200,192,42,24,116,46,108,69,130,36;0~N1~-258845,281673,-151,-45,-53,-26,-87,-54;0~N1~-259224,281492,-129,-73,-105,-46,-73,-26;0~N1~-259121,281555,110,64,141,45;2~M11~-257839,283004,4,-153,12,-57,26,-57;2~M11~-257800,282746,-31,92,-7,92;2~M11~-257837,282969,-1,35;2~R562~-259432,281446,-45,152,4,138,-30,70;2~R562~-259540,281853,41,-55,24,-59,-3,-94,8,-90,36,-108;2~Solomon Mahlangu Drive~-258197,282525,-16,63,-1,86,12,36,77,95,74,135;2~Solomon Mahlangu Drive~-258133,282794,-71,-83,-11,-30,0,-95,17,-62;2~Solomon Mahlangu Drive~-258044,282960,9,52;2~Solomon Mahlangu Drive~-258041,282976,-4,-15;2~Solomon Mahlangu Drive~-258085,282881,-15,-31;0~N1 section 21 North~-259207,281500,86,55;0~N1 section 21 South~-259136,281548,-88,-56;2~M9~-258082,282571,-4,8;3~M25~-258703,281379,-2,-19,6,41,-4,-22;3~M25~-258698,281407,-1,-6,20,123,-3,-19;3~M25~-258678,281529,-1,-5,9,32,45,41,1,125,42,93,119,105,68,67,8,18;3~M25~-258706,281351,1,9;3~M25~-258706,281353,-1,-2;3~M25~-258545,281851,-37,-34,-41,-96,1,-107,-13,-32;3~M25~-258512,281876,117,111,7,19;3~M34~-258640,282108,110,-90,71,-94,66,-71,6,-60,-10,-56,12,92,-6,23,-68,73,-71,94,-109,90;3~M34~-258418,281632,18,66,-19,-66;3~M34~-258398,281723,0,7,-2,-32,2,25;3~M34~-258397,281737,-1,-7,1,7;3~M36~-258724,281956,-47,-48,49,47,48,92,-50,-91;3~M36~-258674,282047,48,84,7,83;3~M36~-258620,282215,-7,-79,-37,-71;3~M36~-259218,281321,-85,168,30,80,33,14,59,44,96,29,-73,-20;3~M36~-259039,281669,-27,-8,182,61,15,21,1,39,51,78,46,48;3~M36~-258786,281894,-32,-33,-48,-70,-35,-66,-22,-17,-54,-20;3~M36~-259216,281321,-82,157,-1,25;3~M36~-259085,281656,18,5;3~M36~-259181,281627,-16,-10;3~M36~-259273,281569,-17,-39;3~M9~-258081,282560,-6,-11,5,22,1,-11;3~M9~-257900,282390,-28,-2,-21,28,-4,23,-126,46,-11,60;3~M9~-258087,282579,5,-8;3~M28~-258633,282472,48,8,-49,-7;3~M28~-258585,282480,171,-39,13,-11,11,-37,33,-44,72,0,33,20,36,-6,16,11,23,42,20,5;3~M28~-258544,282471,21,-5;3~M28~-258261,282365,20,2;3~M28~-258354,282349,-29,33,-15,43,-16,16;3~M28~-258158,282422,-25,-14;3~Willem Botha Road~-258504,281417,-43,8,-55,51;3~Willem Botha Road~-258428,281442,20,-14,-20,14,-39,0,-36,-24;3~Willem Botha Road~-258627,281591,22,-15,6,-19,-4,-75,6,-10;3~M37~-258605,281358,-17,12,-54,2,-24,14,-114,28,-114,12,-49,-11,-51,24,-21,5,-13,-5;3~M37~-258860,281417,60,-7,99,-25,25,-14,28,0;3~M37~-259236,281318,36,9,-36,-9,-144,-9;3~M37~-259093,281401,-20,-30,-59,-31,29,15;3~R114~-258851,280663,37,193,-10,209,77,102,-32,-44;3~R114~-258747,281167,245,330,33,27,72,19,-28,-7;3~R114~-258821,280950,-2,115,16,21;3~R114~-258397,281543,63,17,19,33;3~M18~-259413,282330,101,-6,108,-55,50,16,142,-33,381,-34,246,-98,97,-49,199,-69;3~M18~-258089,282005,-199,67,-139,67,-204,79;3~M19~-258810,282035,88,-80,69,-44,32,-77,31,-34,22,-8,-31,18,-25,36,-18,51,-21,25,-58,34,-89,82,-44,30;3~M19~-258289,282073,-41,-102,-103,-124,104,124,41,101;3~M19~-258433,281847,-39,-38,-35,-17,35,17;3~M19~-258507,281792,-23,-5,-38,5,32,-5,29,5;3~R101~-258807,281616,57,4,-113,-11,27,4;3~R101~-258915,281603,-87,-12,99,13,-12,-1;3~R101~-259407,281450,103,36,180,105,23,3,44,-10,55,7,-59,-5,-61,7,-39,-16,-36,-29,-108,-59,-95,-33;3~R101~-258631,281628,8,1,-127,-9,49,4;3~R101~-258287,281582,44,-22,-206,84,-174,-15,7,1;3~R101~-258243,281560,22,-5,56,14,190,70,89,41;3~West Avenue~-258502,281882,-30,20,-65,72,-32,-27,-30,12,-11,-4,-14,-24;3~West Avenue~-258683,281931,9,20,14,7,31,-12,32,27,67,-75,26,-17;3~M57~-258369,282514,53,38,76,4,-72,-2,-57,-40,-28,-7,-83,45,-122,34,-64,9,-116,-33,16,5;3~M57~-258782,282562,-67,4,-23,-12,-27,-37,-56,-35,-323,-32,-66,-18,-185,12,-132,-3;3~M57~-258688,282591,86,-5;3~R562~-259309,280528,20,224,-112,198;3~M31~-258767,282137,-10,16,-1,32,14,105,33,35,95,69,11,49,-53,164,12,27,127,87,58,67,15,8;3~M31~-258678,282607,53,-164;3~M31~-258991,281421,66,97,5,126,-5,-126;3~M31~-258927,281764,0,43,9,-140,-9,97;3~M31~-258826,282007,58,107;3~M31~-258926,281858,6,55,-1,-6;3~M31~-258861,281984,-45,-40,-14,-31;3~M26~-258085,280987,-31,-36,66,80,46,29,11,33;3~M26~-258151,280928,35,23,-35,-23,-74,-107,-14,-23,-5,-38;3~M26~-258050,281031,49,30,10,32;3~M24~-258157,281161,10,17,135,123,48,280,6,3,-7,59,16,73,-10,36,-21,16,-112,28,-39,54,16,-27;3~M24~-258131,281850,-60,101;3~M27~-258361,282353,-95,-83,-44,-9,-2,-14,12,-22,29,-16,32,-38,37,-22,-9,-23,-39,-94,-114,-104,-30,-15,-56,-51,-48,-63,-41,-74,-7,-58,-39,-38,-7,-25,-33,-26,-43,-83,26,-56;3~M27~-258782,281604,6,19,48,50,-1,8;3~M27~-258660,281830,49,38,172,164,37,93;3~Estcourt Avenue~-258727,281524,6,98;3~Estcourt Avenue~-258723,281622,1,-35;3~R55~-259162,280999,-36,-7,284,53;3~R55~-259400,280952,202,40;3~R55~-258915,281048,-185,-38;3~Lenchen Avenue~-258725,281197,-26,11,-13,15,-21,81,-29,54,1,28,-12,27;3~Lenchen Avenue~-258826,281413,13,-32,-1,-23;3~Lenchen Avenue~-258792,281316,11,-27;3~M23~-258331,282904,-72,-89,-26,-75;3~M23~-258428,282740,29,81,41,49;3~M30~-257898,282780,-64,75,67,-83;3~M33~-257882,282834,-88,-34,89,33;3~M33~-258132,282775,-13,3,14,-3,19,9,38,35,70,-25,34,6;3~Lever Road~-259407,281297,27,12";
+const ROADS = ROADS_RAW.split(";").map(s=>{ const [c,n,nums]=s.split("~"); const v=nums.split(",").map(Number); const p=[]; let a=v[0],b=v[1]; p.push([a/1e4,b/1e4]); for(let i=2;i<v.length;i+=2){ a+=v[i]; b+=v[i+1]; p.push([a/1e4,b/1e4]); } return {c:+c,n,p}; });
+const PLACES = [["Wierdapark",-25.8603,28.1467],["Eldoraigne",-25.8451,28.1573],["Clubview",-25.8339,28.1683],["Hennopspark",-25.8497,28.1742],["Zwartkop",-25.8672,28.1764],["Lyttelton",-25.8294,28.2028],["Die Hoewes",-25.8460,28.1950],["Doringkloof",-25.8564,28.2103],["Irene",-25.8684,28.2180],["Highveld",-25.8700,28.2300],["Pierre van Ryneveld",-25.8369,28.2417],["Rooihuiskraal",-25.8933,28.1514],["The Reeds",-25.8992,28.1342],["Amberfield",-25.8850,28.1328],["Heuweloord",-25.8822,28.1131],["Celtisdal",-25.8711,28.1297],["Raslouw",-25.8529,28.1187],["Thatchfield",-25.8975,28.1137],["Valhalla",-25.8069,28.1511],["Glen Lauriston",-25.8253,28.1558],["Golden Fields",-25.9080,28.1691],["Midstream",-25.9111,28.1934],["Kosmosdal",-25.9250,28.1350],["Monavoni",-25.8560,28.1000]];
+const VIEW={z:1,tx:0,ty:0}; let mapGeom=null, drag=null, raf=0;
 function hash2(x,y){ let h=x*374761393+y*668265263; h=(h^(h>>13))*1274126177; return ((h^(h>>16))>>>0)/4294967295; }
-function vnoise(x,y){ const xi=Math.floor(x), yi=Math.floor(y), xf=x-xi, yf=y-yi; const s=t=>t*t*(3-2*t);
-  const a=hash2(xi,yi), b=hash2(xi+1,yi), c=hash2(xi,yi+1), d=hash2(xi+1,yi+1); const u=s(xf), v=s(yf); return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v; }
-function geom(w,h){
-  const pts=activeAll().concat(Object.values(ANCHORS));
+function vnoise(x,y){ const xi=Math.floor(x), yi=Math.floor(y), xf=x-xi, yf=y-yi, s=t=>t*t*(3-2*t);
+  const a=hash2(xi,yi), b=hash2(xi+1,yi), c=hash2(xi,yi+1), d=hash2(xi+1,yi+1), u=s(xf), v=s(yf); return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v; }
+function baseGeom(w,h){
+  const pts=activeAll().filter(l=>l.tier==="core").concat(Object.values(ANCHORS));
   let minLat=Math.min(...pts.map(p=>p.lat)), maxLat=Math.max(...pts.map(p=>p.lat)), minLng=Math.min(...pts.map(p=>p.lng)), maxLng=Math.max(...pts.map(p=>p.lng));
-  const k=Math.cos(-25.86*Math.PI/180), padLat=(maxLat-minLat)*.12+.006, padLng=(maxLng-minLng)*.08+.006;
+  const k=Math.cos(-25.86*Math.PI/180), padLat=(maxLat-minLat)*.18+.01, padLng=(maxLng-minLng)*.1+.008;
   minLat-=padLat; maxLat+=padLat; minLng-=padLng; maxLng+=padLng;
-  const sc=Math.min((w-40)/((maxLng-minLng)*k), (h-90)/(maxLat-minLat));
-  const ox=(w-(maxLng-minLng)*k*sc)/2, oy=(h-60-(maxLat-minLat)*sc)/2+10;
+  const sc=Math.min(w/((maxLng-minLng)*k), (h-40)/(maxLat-minLat));
+  const ox=(w-(maxLng-minLng)*k*sc)/2, oy=(h-40-(maxLat-minLat)*sc)/2;
   return { x:lng=>ox+(lng-minLng)*k*sc, y:lat=>oy+(maxLat-lat)*sc, kmPx: sc/111.32 };
 }
-function jit(id){ let h=0; for(const c of id) h=(h*31+c.charCodeAt(0))|0; return [((h&255)/255-.5)*30, (((h>>8)&255)/255-.5)*30]; }
+function geomNow(w,h){ const b=baseGeom(w,h); return { x:lng=>b.x(lng)*VIEW.z+VIEW.tx, y:lat=>b.y(lat)*VIEW.z+VIEW.ty, kmPx:b.kmPx*VIEW.z }; }
+function jit(id){ let h=0; for(const c of id) h=(h*31+c.charCodeAt(0))|0; return [((h&255)/255-.5)*26, (((h>>8)&255)/255-.5)*26]; }
 function markerVisible(l){ if(!passesBase(l)) return false; const st=statusOf(l.id); if(S.mapMode==="ok" && petClass(l)!=="ok") return false; if(S.mapMode==="saved" && !SHORT.includes(st)) return false; if($("tHide").getAttribute("aria-pressed")==="true" && st==="no") return false; return true; }
-function renderMap(){
+function renderMap(light){
   const area=$("mapArea"), cv=$("map"), w=area.clientWidth, h=area.clientHeight; if(!w||!h) return;
-  const dpr=Math.min(2,window.devicePixelRatio||1); cv.width=w*dpr; cv.height=h*dpr;
+  const dpr=Math.min(2,window.devicePixelRatio||1); if(cv.width!==w*dpr||cv.height!==h*dpr){ cv.width=w*dpr; cv.height=h*dpr; }
   const ctx=cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
-  const all=activeAll(); mapGeom=geom(w,h); const G=mapGeom;
-  const pos=all.map(l=>{ const [jx,jy]=l.geo==="exact"?[0,0]:jit(l.id); return {l, x:G.x(l.lng)+jx, y:G.y(l.lat)+jy}; });
-  const anchors=Object.values(ANCHORS).map(a=>({x:G.x(a.lng), y:G.y(a.lat)}));
-  const ring=4.94*G.kmPx, sig=Math.max(26, 1.3*G.kmPx), sp=7;
+  const all=activeAll(); const G=geomNow(w,h); mapGeom=G;
+  const jz=Math.min(1,1/VIEW.z*1.6);
+  const pos=all.map(l=>{ const [jx,jy]=l.geo==="exact"?[0,0]:jit(l.id); return {l, x:G.x(l.lng)+jx*jz, y:G.y(l.lat)+jy*jz}; });
+  const anchors=Object.entries(ANCHORS).map(([k,a])=>({k,a,x:G.x(a.lng), y:G.y(a.lat)}));
+  const ring=4.94*G.kmPx, sig=Math.max(16, 1.0*G.kmPx), sp=7;
   const vis=pos.filter(p=>markerVisible(p.l));
-  for(let y=sp/2; y<h-50; y+=sp){
-    for(let x=sp/2; x<w; x+=sp){
-      let v=0;
-      for(const p of vis){ const dx=x-p.x, dy=y-p.y; const d2=dx*dx+dy*dy; if(d2<sig*sig*9) v+=Math.exp(-d2/(2*sig*sig)); }
-      let z=0; for(const a of anchors){ const d=Math.hypot(x-a.x,y-a.y); if(d<ring) z=Math.max(z, .22+.18*(1-d/ring)); else if(d<ring+6) z=Math.max(z,.5); }
-      const nz=vnoise(x/38,y/38)*.7+vnoise(x/11,y/11)*.3;
-      const t=Math.min(1.4, v*.55 + z + (nz-.45)*.35);
-      let r=.7, col;
-      if(t<.18){ col=`rgba(90,100,96,${.25+nz*.2})`; r=.75; }
-      else if(t<.75){ const a=(t-.18)/.57; col=`rgba(${Math.round(40+a*16)},${Math.round(120+a*94)},${Math.round(98+a*65)},${.45+a*.5})`; r=.9+a*1.1; }
+  if(!light){
+    for(let y=sp/2; y<h; y+=sp){ for(let x=sp/2; x<w; x+=sp){
+      let v=0; for(const p of vis){ const dx=x-p.x, dy=y-p.y, d2=dx*dx+dy*dy; if(d2<sig*sig*9) v+=Math.exp(-d2/(2*sig*sig)); }
+      let z=0; for(const a of anchors){ const d=Math.hypot(x-a.x,y-a.y); if(d<ring) z=Math.max(z,.16+.16*(1-d/ring)); }
+      const nx=(x-VIEW.tx)/VIEW.z, ny=(y-VIEW.ty)/VIEW.z, nz=vnoise(nx/38,ny/38)*.7+vnoise(nx/11,ny/11)*.3;
+      const t=Math.min(1.4, v*.55 + z + (nz-.45)*.3);
+      let r, col;
+      if(t<.18){ col=`rgba(90,100,96,${.2+nz*.18})`; r=.7; }
+      else if(t<.75){ const a=(t-.18)/.57; col=`rgba(${Math.round(40+a*16)},${Math.round(120+a*94)},${Math.round(98+a*65)},${.4+a*.5})`; r=.9+a*1.1; }
       else { const a=Math.min(1,(t-.75)/.6); col=`rgba(${Math.round(56+a*170)},${Math.round(214-a*100)},${Math.round(163-a*95)},.95)`; r=2+a*.6; }
       ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-    }
+    } }
   }
-  for(const a of anchors){ ctx.strokeStyle="rgba(244,247,245,.28)"; ctx.setLineDash([3,6]); ctx.beginPath(); ctx.arc(a.x,a.y,ring,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]); }
-  // overlay markers
+  // roads
+  const style=[[3.2,.62],[2.6,.5],[1.7,.36],[1.1,.24]];
+  ctx.lineCap="round"; ctx.lineJoin="round";
+  for(const cls of [3,2,1,0]){ for(const r of ROADS){ if(r.c!==cls) continue; ctx.strokeStyle=`rgba(233,238,235,${style[cls][1]})`; ctx.lineWidth=style[cls][0]*Math.min(1.6,Math.max(.8,VIEW.z*.8));
+    ctx.beginPath(); r.p.forEach((q,i)=>{ const X=G.x(q[1]), Y=G.y(q[0]); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); }); ctx.stroke(); } }
+  // road labels: one per name, longest piece, placed mid-segment when on screen
+  const best={};
+  for(const r of ROADS){ if(!r.n || /section/i.test(r.n) || (r.c===3 && VIEW.z<1.6 && !/^[NRM]\d/.test(r.n))) continue; if(r.p.length<2) continue;
+    const mid=r.p[Math.floor(r.p.length/2)], X=G.x(mid[1]), Y=G.y(mid[0]); if(X<20||X>w-20||Y<20||Y>h-50) continue;
+    const len=r.p.length; if(!best[r.n]||best[r.n].len<len) best[r.n]={X,Y,len,c:r.c}; }
+  ctx.font="500 10px Lexend, sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  for(const [n,b] of Object.entries(best)){ const short=n.replace(" Avenue"," Ave").replace(" Road"," Rd").replace(" Drive"," Dr"); const tw=ctx.measureText(short).width+10;
+    ctx.fillStyle=b.c<=1?"rgba(233,238,235,.92)":"rgba(37,41,40,.92)"; ctx.strokeStyle="rgba(233,238,235,.35)"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(b.X-tw/2,b.Y-8,tw,16,4) : ctx.rect(b.X-tw/2,b.Y-8,tw,16); ctx.fill(); if(b.c>1) ctx.stroke();
+    ctx.fillStyle=b.c<=1?"#111":"rgba(233,238,235,.85)"; ctx.fillText(short,b.X,b.Y+.5); }
+  // suburb names
+  ctx.font="300 11px Lexend, sans-serif"; ctx.fillStyle="rgba(200,210,205,.55)";
+  for(const [n,la,lo] of PLACES){ const X=G.x(lo), Y=G.y(la); if(X>30&&X<w-30&&Y>16&&Y<h-50) ctx.fillText(n,X,Y-14); }
+  // 10-minute zones
+  for(const a of anchors){ ctx.strokeStyle=a.a.color; ctx.globalAlpha=.75; ctx.lineWidth=1.4; ctx.setLineDash([5,6]); ctx.beginPath(); ctx.arc(a.x,a.y,ring,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+    ctx.globalAlpha=.07; ctx.fillStyle=a.a.color; ctx.beginPath(); ctx.arc(a.x,a.y,ring,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+    ctx.font="500 10px Lexend, sans-serif"; ctx.fillStyle=a.a.color; ctx.fillText("10 min from "+a.a.name, a.x, a.y-ring-9); }
+  // overlay
   let html="";
-  for(const [k,a] of Object.entries(ANCHORS)) html+=`<div class="anchor" style="left:${G.x(a.lng)}px;top:${G.y(a.lat)}px"><span>${a.name}</span><i></i></div>`;
-  for(const p of pos){ const l=p.l, pc=petClass(l), st=statusOf(l.id), v=markerVisible(l);
+  for(const a of anchors) html+=`<div class="anchor" style="left:${a.x}px;top:${a.y}px;--c:${a.a.color}"><div class="tag"><b>Work · ${a.a.name}</b><span>${a.a.sub}</span></div><div class="pinA"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></div></div>`;
+  for(const p of pos){ const l=p.l, pc=petClass(l), st=statusOf(l.id), v=markerVisible(l); if(p.x<-20||p.x>w+20||p.y<-20||p.y>h+20) continue;
     html+=`<button class="marker ${pc} ${SHORT.includes(st)?"saved":""} ${v?"":"dimmed"} ${isNew(l)?"fresh":""} ${S.popId===l.id?"on":""}" style="left:${p.x}px;top:${p.y}px" data-pop="${esc(l.id)}" aria-label="${esc(l.type+" in "+l.suburb+", "+rand(l.price))}" ${v?"":'tabindex="-1"'}>${ICON[pc]}</button>`; }
-  if(S.popId && S.listings.get(S.popId)){ const p=pos.find(q=>q.l.id===S.popId); if(p) html+=popHtml(p, w, h); }
+  if(S.popId && S.listings.get(S.popId)){ const p=pos.find(q=>q.l.id===S.popId); if(p) html+=popHtml(p,w,h); }
   $("overlay").innerHTML=html;
   $("dCount").textContent=`${vis.length} place${vis.length===1?"":"s"}`;
 }
@@ -426,11 +469,25 @@ function popHtml(p,w,h){
   return `<div class="pop" style="left:${Math.max(8,left)}px;top:${top}px">
     <div class="ph"><span class="marker ${petClass(l)}" style="position:static;transform:none;width:18px;height:18px;box-shadow:none">${ICON[petClass(l)].replace(/width="(13|26)" height="(13|26)"/,'width="11" height="11"')}</span>${esc(l.type)} · ${esc(l.suburb)}</div>
     <div class="row2"><span>${rand(l.price)} pm</span><span class="muted">${l.beds} bed · ${l.baths} bath</span></div>
-    <div class="row2"><span class="muted">Drive ~${l.min_drive} min</span><span class="muted">InsideOut ~${l.min_insideout} min</span></div>
+    <div class="row2"><span class="muted">TecWise ~${l.min_tecwise} min</span><span class="muted">Drive ~${l.min_drive} min</span></div>
     <div class="row2"><span class="muted">${esc(petLabel(l))}</span>${st!=="new"?`<span class="status st-${st}">${STATUS_LABEL[st]}</span>`:""}</div>
     <div class="act"><button class="btn small primary" data-open="${esc(l.id)}">Open</button><button class="btn small" data-heart="${esc(l.id)}">${SHORT.includes(st)?"♥ Saved":"♡ Interested"}</button><button class="btn small" data-closepop>Close</button></div>
   </div>`;
 }
+function zoomAt(f, cx, cy){ const nz=Math.max(.7,Math.min(6,VIEW.z*f)); const k=nz/VIEW.z; VIEW.tx=cx-(cx-VIEW.tx)*k; VIEW.ty=cy-(cy-VIEW.ty)*k; VIEW.z=nz; renderMap(); }
+function schedule(light){ cancelAnimationFrame(raf); raf=requestAnimationFrame(()=>renderMap(light)); }
+(function mapInput(){
+  const area=$("mapArea"); const pts=new Map(); let pinch=null, moved=0;
+  area.addEventListener("pointerdown",e=>{ if(e.target.closest(".marker,.pop,.dock,.mapLegend")) return; area.setPointerCapture(e.pointerId); pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); moved=0;
+    if(pts.size===2){ const [a,b]=[...pts.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y)}; } });
+  area.addEventListener("pointermove",e=>{ if(!pts.has(e.pointerId)) return; const prev=pts.get(e.pointerId); const cur={x:e.clientX,y:e.clientY}; pts.set(e.pointerId,cur);
+    if(pts.size===2 && pinch){ const [a,b]=[...pts.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y); const r=area.getBoundingClientRect(); const f=d/pinch.d; pinch.d=d;
+      const nz=Math.max(.7,Math.min(6,VIEW.z*f)), k=nz/VIEW.z, cx=(a.x+b.x)/2-r.left, cy=(a.y+b.y)/2-r.top; VIEW.tx=cx-(cx-VIEW.tx)*k; VIEW.ty=cy-(cy-VIEW.ty)*k; VIEW.z=nz; schedule(true); return; }
+    VIEW.tx+=cur.x-prev.x; VIEW.ty+=cur.y-prev.y; moved+=Math.abs(cur.x-prev.x)+Math.abs(cur.y-prev.y); if(moved>3){ area.classList.add("dragging"); schedule(true); } });
+  const end=e=>{ if(!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if(pts.size<2) pinch=null; if(!pts.size){ area.classList.remove("dragging"); if(moved>3) renderMap(); } };
+  area.addEventListener("pointerup",end); area.addEventListener("pointercancel",end);
+  area.addEventListener("wheel",e=>{ e.preventDefault(); const r=area.getBoundingClientRect(); zoomAt(e.deltaY<0?1.18:1/1.18, e.clientX-r.left, e.clientY-r.top); },{passive:false});
+})();
 
 /* ---------- lower panels ---------- */
 function renderBoard(){
@@ -468,7 +525,7 @@ function card(l){
     ${isNew(l)?`<span class="newFlag">New</span>`:""}
     <div class="top"><div style="min-width:0"><h3>${esc(l.type)} · ${esc(l.suburb)}</h3><div class="where">${esc(l.address||"Address on request")}</div></div>
       <div class="price num">${rand(l.price)}<small> pm</small></div></div>
-    <div class="facts"><span class="fact"><b>${l.beds}</b> bed</span><span class="fact"><b>${l.baths}</b> bath</span>${l.size_m2?`<span class="fact"><b>${l.size_m2}</b> m²</span>`:""}<span class="fact">InsideOut <b>~${l.min_insideout}</b> min</span><span class="fact">Drive <b>~${l.min_drive}</b> min</span></div>
+    <div class="facts"><span class="fact"><b>${l.beds}</b> bed</span><span class="fact"><b>${l.baths}</b> bath</span>${l.size_m2?`<span class="fact"><b>${l.size_m2}</b> m²</span>`:""}<span class="fact">TecWise <b>~${l.min_tecwise}</b> min</span><span class="fact">Drive <b>~${l.min_drive}</b> min</span></div>
     <div class="facts">${facts.join("")}</div>
     ${t.note?`<div class="note">${esc(t.note)}</div>`:""}
     <div class="foot"><span class="src">${esc(l.source)}${l.agency?` · ${esc(l.agency)}`:""}</span>
@@ -484,7 +541,7 @@ function renderList(){
   $("view").innerHTML=`<div class="grid">${arr.map(card).join("")}</div>`;
 }
 function renderHeader(){
-  $("updated").innerHTML = S.meta.last_run ? `Data from the <span class="num">${esc(S.meta.last_run)}</span> search · 3 bed · 2 bath · ≤ R16 000` : (S.loaded?"No search results yet":"Loading listings…");
+  $("updated").innerHTML = S.meta.last_run ? `Data from the <span class="num">${esc(S.meta.last_run)}</span> search · 3 bed · 2 bath · ≤ R16 000 · within ~10 min of TecWise or Drive` : (S.loaded?"No search results yet":"Loading listings…");
 }
 function render(){ renderHeader(); renderCharts(); renderGauges(); renderMap(); renderBoard(); renderTiles(); renderTabs(); renderList(); if(S.openId) renderDrawer(); }
 
@@ -531,7 +588,7 @@ function renderDrawer(first){
        <div class="facts"><span class="fact ${pc}">${petLabel(l)}</span>${fibreOk(l)?`<span class="fact teal">Fibre ${esc(l.fibre)}</span>`:`<span class="fact ask">Fibre: ask</span>`}${secOk(l)?`<span class="fact">Security</span>`:`<span class="fact ask">Security: ask</span>`}</div>
        <dl class="kv"><dt>Size</dt><dd><span class="num">${l.beds}</span> bed · <span class="num">${l.baths}</span> bath${l.size_m2?` · <span class="num">${l.size_m2}</span> m²`:""}</dd>
          <dt>Available</dt><dd>${esc(l.available||"Ask")}</dd><dt>Security</dt><dd>${esc(l.security||"Not described")}</dd><dt>Pets</dt><dd>${esc(l.pets||"unknown")}</dd>
-         <dt>Drive time</dt><dd>InsideOut ~<span class="num">${l.min_insideout}</span> min · Drive ~<span class="num">${l.min_drive}</span> min <span class="muted">(estimate)</span></dd>
+         <dt>Drive time</dt><dd>TecWise ~<span class="num">${l.min_tecwise}</span> min · Drive ~<span class="num">${l.min_drive}</span> min <span class="muted">(estimate)</span></dd>
          <dt>First seen</dt><dd class="num">${esc(l.first_seen||"")}</dd>
          ${(l.price_history||[]).length>1?`<dt>Price history</dt><dd class="num">${l.price_history.map(p=>`${esc(p.date)}: ${rand(p.price)}`).join("<br>")}</dd>`:""}</dl>
        ${l.summary?`<p style="margin:0;font-size:13px">${esc(l.summary)}</p>`:""}
@@ -539,7 +596,7 @@ function renderDrawer(first){
        ${(l.dupes||[]).length?`<div class="muted" style="font-size:11px">Also listed on another site.</div>`:""}
        <div class="row"><a class="btn" href="${esc(l.maps_url)}" target="_blank" rel="noopener">Open in Google Maps</a>
          <a class="btn" href="https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=Drive.co.za+Guernsey+Business+Park+Saltus+Street+Irene" target="_blank" rel="noopener">Route to Drive</a>
-         <a class="btn" href="https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=Lenchen+Avenue+North+Centurion" target="_blank" rel="noopener">Route to InsideOut</a></div></div>
+         <a class="btn" href="https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=Estcourt+Avenue,+Wierdapark,+Centurion" target="_blank" rel="noopener">Route to TecWise</a></div></div>
      <div class="sec"><div class="label">Our notes</div>
        <div class="field"><label class="label" for="dView">Viewing date / time</label><input id="dView" placeholder="e.g. Sat 18 Oct, 10:00" value="${esc(keep.dView ?? (t.viewing||""))}"></div>
        <div class="field"><label class="label" for="dNote">Notes</label><textarea id="dNote" placeholder="What did the agent say? What did we like?">${esc(keep.dNote ?? (t.note||""))}</textarea></div>
@@ -574,6 +631,7 @@ document.addEventListener("click", async e=>{
   if(el.id==="dCopyMsg"){ copy($("dMsg").textContent); return; }
   if(el.id==="dSave" && S.openId){ const ok=await saveTrack(S.openId,{phone:$("dPhone").value.trim(),email:$("dEmail").value.trim(),note:$("dNote").value.trim(),viewing:$("dView").value.trim()}); if(ok&&$("dSaved")) $("dSaved").textContent="Saved for both of you"; return; }
   const tog=el.closest("#tFibre,#tSec,#tHide"); if(tog){ tog.setAttribute("aria-pressed", tog.getAttribute("aria-pressed")!=="true"); store.set(tog.id,tog.getAttribute("aria-pressed")); render(); return; }
+  const zb=el.closest("#zIn,#zOut,#zReset"); if(zb){ const a=$("mapArea"); if(zb.id==="zReset"){ VIEW.z=1; VIEW.tx=0; VIEW.ty=0; renderMap(); } else zoomAt(zb.id==="zIn"?1.35:1/1.35, a.clientWidth/2, a.clientHeight/2); return; }
   const dk=el.closest("#dAll,#dOk,#dSaved"); if(dk){ S.mapMode={dAll:"all",dOk:"ok",dSaved:"saved"}[dk.id]; ["dAll","dOk","dSaved"].forEach(i=>$(i).setAttribute("aria-pressed",String(i===dk.id))); renderMap(); return; }
 });
 document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ if(S.openId) closeDrawer(); else if(S.popId){ S.popId=null; renderMap(); } } if(e.key==="Enter" && e.target.classList && e.target.classList.contains("card")) openDrawer(e.target.dataset.id); });

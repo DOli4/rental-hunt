@@ -7,39 +7,9 @@ import json, math, os, datetime
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TODAY = "2026-10-14"
 
-# Anchor points used for drive-time estimates
-ANCHORS = {
-    "insideout": {"name": "InsideOut (Lenchen Ave)", "lat": -25.8530, "lng": 28.1900},
-    "drive": {"name": "Drive.co.za (Saltus St, Irene)", "lat": -25.8548, "lng": 28.2476},
-}
-
-# Approximate suburb/estate centres, used when a listing has no exact pin
-CENTRES = {
-    "Die Hoewes": (-25.8460, 28.1950), "Centurion Central": (-25.8540, 28.1880),
-    "Lyttelton Manor": (-25.8280, 28.2050), "Highveld": (-25.8700, 28.2300),
-    "Eco Park Estate": (-25.8790, 28.2150), "Irene": (-25.8760, 28.2280),
-    "Clubview": (-25.8400, 28.1650), "Zwartkop": (-25.8380, 28.1760),
-    "Hennopspark": (-25.8320, 28.1600), "Doringkloof": (-25.8580, 28.2150),
-    "Pierre van Ryneveld": (-25.8850, 28.2550), "Eldoraigne": (-25.8560, 28.1550),
-    "Eldo Glen": (-25.8620, 28.1500), "Wierda Park": (-25.8570, 28.1420),
-    "Valhalla": (-25.8160, 28.1500), "Golden Fields Estate": (-25.8960, 28.2150),
-    "Louwlardia": (-25.8960, 28.2150), "Glen Lauriston": (-25.8760, 28.1400),
-    "Eldo Lakes Estate": (-25.8760, 28.1400), "Midstream Estate": (-25.9253, 28.2201),
-    "Heuweloord": (-25.8900, 28.1400), "Centurion": (-25.8550, 28.1900),
-}
-
-
-def km(a, b):
-    R = 6371.0
-    la1, lo1, la2, lo2 = map(math.radians, [a[0], a[1], b[0], b[1]])
-    d = math.sin((la2 - la1) / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2
-    return 2 * R * math.asin(math.sqrt(d))
-
-
-def drive_min(k):
-    # straight-line km x 1.35 road factor at ~40 km/h urban average
-    return max(3, round(k * 1.35 / 40 * 60))
-
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from geo import enrich, ANCHORS  # noqa: E402
 
 PP = "Private Property"; P24 = "Property24"; MP = "MyProperty"; GT = "Gumtree"; FB = "Facebook Marketplace"; DEV = "Developer"
 
@@ -214,19 +184,73 @@ add("dev-colorado-amberfield", DEV, "https://www.centraldevelopments.co.za/color
     "Simplex", "Heuweloord", "Colorado @ Amberfield City, 86 Apiesdoring Dr", 15000, 3, 2, 74, "Now", "small pets", "unknown", "Multi-layer 24h security",
     "Central Developments", "Patricia Mokwena", "0600153747", "New developer-run estate renting directly. 3/2 simplex houses from R15,000.")
 
+# ---------------- West side (near TecWise, Wierdapark) – Property24 cards ----------------
+for args in [
+    ("117712519", "kosmosdal/centurion/gauteng/10811", "Townhouse", "Kosmosdal", 11850, 3, 2),
+    ("117647592", "raslouw/centurion/gauteng/383", "Apartment", "Raslouw", 11000, 3, 2),
+    ("117674355", "the-reeds/centurion/gauteng/516", "Townhouse", "The Reeds", 12500, 3, 2),
+    ("117448657", "thatchfield-manor/centurion/gauteng/16481", "Townhouse", "Thatchfield Manor", 15000, 3, 2.5),
+    ("117710400", "thatchfield-cresent/centurion/gauteng/16996", "Townhouse", "Thatchfield Cresent", 15000, 3, 2),
+    ("117698327", "heuwelsig-estate/centurion/gauteng/10935", "Townhouse", "Heuwelsig Estate", 14000, 3, 2),
+    ("117698243", "heuwelsig-estate/centurion/gauteng/10935", "Townhouse", "Heuwelsig Estate", 10200, 3, 2),
+    ("117716791", "kosmosdal/centurion/gauteng/10811", "Townhouse", "Kosmosdal", 11750, 3, 2),
+    ("112858227", "kosmosdal/centurion/gauteng/10811", "House", "Kosmosdal", 15000, 3, 3),
+    ("117699242", "amberfield-heights/centurion/gauteng/569", "Townhouse", "Amberfield Heights", 14000, 3, 2),
+    ("112614678", "thatchfield-close/centurion/gauteng/17799", "House", "Thatchfield Close", 16000, 3, 2),
+    ("117667527", "the-reeds/centurion/gauteng/516", "House", "The Reeds", 14500, 4, 2),
+    ("117676484", "monavoni/centurion/gauteng/382", "Townhouse", "Monavoni", 15999, 3, 2),
+    ("117687767", "kosmosdal/centurion/gauteng/10811", "Townhouse", "Kosmosdal", 13000, 3, 2),
+    ("117696624", "thatchfield-estate/centurion/gauteng/10817", "House", "Thatchfield Estate", 14200, 3, 2),
+    ("117660470", "the-reeds/centurion/gauteng/516", "House", "The Reeds", 16000, 3, 2.5),
+    ("117100608", "amberfield-valley/centurion/gauteng/11864", "House", "Amberfield Valley", 16000, 3, 2),
+    ("117678317", "kosmosdal/centurion/gauteng/10811", "Townhouse", "Kosmosdal", 16000, 3, 2),
+    ("117630880", "the-reeds/centurion/gauteng/516", "House", "The Reeds", 13500, 4, 2),
+    ("117696702", "raslouw/centurion/gauteng/383", "Townhouse", "Raslouw", 10250, 3, 2),
+    ("117676891", "heuweloord/centurion/gauteng/377", "House", "Heuweloord", 12000, 3, 2),
+    ("117616335", "thatchfield-ridge/centurion/gauteng/33394", "House", "Thatchfield Ridge", 15500, 3, 2),
+    ("117708123", "kosmosdal/centurion/gauteng/10811", "Townhouse", "Kosmosdal", 9900, 3, 2),
+    ("117712120", "monavoni/centurion/gauteng/382", "Townhouse", "Monavoni", 13500, 3, 2),
+    ("117583697", "amberfield-manor/centurion/gauteng/10873", "Apartment", "Amberfield Manor", 15500, 3, 2),
+    ("117537399", "heuweloord/centurion/gauteng/377", "House", "Heuweloord", 11900, 3, 2),
+    ("117620884", "amberfield/centurion/gauteng/579", "Townhouse", "Amberfield", 12200, 3, 2),
+    ("117264070", "thatchfield-estate/centurion/gauteng/10817", "House", "Thatchfield Estate", 16000, 3, 2),
+    ("117707281", "raslouw-ah/centurion/gauteng/32906", "House", "Raslouw AH", 13900, 3, 2),
+    ("117559428", "celtisdal/centurion/gauteng/393", "Townhouse", "Celtisdal", 15000, 3, 2),
+    ("113889372", "kosmosdal/centurion/gauteng/10811", "Townhouse", "Kosmosdal", 10000, 3, 2),
+    ("117501735", "heuweloord/centurion/gauteng/377", "House", "Heuweloord", 14500, 3, 2),
+    ("117552658", "the-reeds/centurion/gauteng/516", "House", "The Reeds", 16000, 3, 2),
+    ("117516737", "raslouw-ah/centurion/gauteng/32906", "Townhouse", "Raslouw AH", 14700, 3, 3),
+    ("117147245", "monavoni/centurion/gauteng/382", "Apartment", "Monavoni", 13050, 3, 2),
+    ("117530828", "the-reeds/centurion/gauteng/516", "House", "The Reeds", 14000, 3, 3),
+    ("113615862", "heuwelsig-estate/centurion/gauteng/10935", "Townhouse", "Heuwelsig Estate", 12450, 3, 2),
+    ("115941507", "amberfield-manor/centurion/gauteng/10873", "Townhouse", "Amberfield Manor", 14200, 3, 2),
+    ("117517402", "thatchfield-close/centurion/gauteng/17799", "Townhouse", "Thatchfield Close", 14500, 3, 2),
+    ("114942368", "celtisdal/centurion/gauteng/393", "Apartment", "Celtisdal", 11000, 3, 2),
+    ("117500310", "the-reeds/centurion/gauteng/516", "House", "The Reeds", 13900, 3, 2),
+    ("117393174", "amberfield-crest-estate/centurion/gauteng/12765", "House", "Amberfield Crest Estate", 14500, 3, 2),
+    ("117299552", "celtisdal/centurion/gauteng/393", "Apartment", "Celtisdal", 11000, 3, 2),
+    ("117308601", "celtisdal/centurion/gauteng/393", "Apartment", "Celtisdal", 12000, 3, 2),
+    ("117148989", "celtisdal/centurion/gauteng/393", "Apartment", "Celtisdal", 10800, 3, 2),
+    ("116727646", "rooihuiskraal/centurion/gauteng/409", "Townhouse", "Rooihuiskraal", 14000, 3, 2),
+    ("116689076", "heuweloord/centurion/gauteng/377", "House", "Heuweloord", 13500, 3, 2),
+    ("117088435", "raslouw/centurion/gauteng/383", "Apartment", "Raslouw", 10500, 3, 2),
+    ("117507920", "heuweloord/centurion/gauteng/377", "House", "Heuweloord", 15000, 3, 2),
+]:
+    p(*args)
+p("117703942", "heuweloord/centurion/gauteng/377", "Apartment", "Heuweloord", 12500, 3, 2, available="1 Nov", pets="yes",
+  security="24h security", addr="Sagewood", summary="Load-shedding-free unit in Sagewood with solar, double garage, near Mall@55.",
+  dupes=["mp-2564948"])
+p("117688333", "the-reeds/centurion/gauteng/516", "Apartment", "The Reeds", 13000, 3, 2, size=145, available="Now", pets="yes",
+  summary="145 m² unit in a quiet complex, garden access, single garage. Pet friendly.")
+
 out = []
+seen_drop = []
 for r in R:
-    exact = "lat" in r
-    if not exact:
-        c = CENTRES.get(r["suburb"], CENTRES["Centurion"])
-        r["lat"], r["lng"] = c
-    r["geo"] = "exact" if exact else "suburb"
-    d1 = km((r["lat"], r["lng"]), (ANCHORS["insideout"]["lat"], ANCHORS["insideout"]["lng"]))
-    d2 = km((r["lat"], r["lng"]), (ANCHORS["drive"]["lat"], ANCHORS["drive"]["lng"]))
-    r["min_insideout"], r["min_drive"] = drive_min(d1), drive_min(d2)
-    r["tier"] = "core" if min(r["min_insideout"], r["min_drive"]) <= 10 else "nearby"
-    r["maps_url"] = "https://www.google.com/maps/search/?api=1&query=" + (
-        f"{r['lat']},{r['lng']}" if exact else (r["address"] + ", " if r["address"] else "") .replace(" ", "+") + r["suburb"].replace(" ", "+") + ",+Centurion")
+    if "lat" in r:
+        r["geo"] = "exact"
+    enrich(r)
+    if r["tier"] == "outside":
+        seen_drop.append(r["id"]); continue
     r.setdefault("dupes", [])
     r.setdefault("note", "")
     r.setdefault("phone_work", "")
@@ -246,6 +270,6 @@ with open(os.path.join(ROOT, "data", "listings.json"), "w") as f:
     json.dump(doc, f, indent=1, ensure_ascii=False)
 with open(os.path.join(ROOT, "data", "history", TODAY + ".json"), "w") as f:
     json.dump(doc, f, indent=1, ensure_ascii=False)
-print(len(out), "listings;", sum(1 for x in out if x["tier"] == "core"), "core")
+print("dropped (too far):", len(seen_drop)); print(len(out), "listings;", sum(1 for x in out if x["tier"] == "core"), "core")
 for x in out:
-    print(f"{x['tier']:6} {x['min_insideout']:>3}/{x['min_drive']:>3}min R{x['price']:>6} {x['beds']}/{x['baths']} {x['suburb']:<20} {x['source']}")
+    print(f"{x['tier']:6} {x['min_tecwise']:>3}/{x['min_drive']:>3}min R{x['price']:>6} {x['beds']}/{x['baths']} {x['suburb']:<20} {x['source']}")

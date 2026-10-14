@@ -11,22 +11,22 @@ bursts, and never click "Show number", solve CAPTCHAs or work around a site that
 | Bedrooms | 3 or more |
 | Bathrooms | 2 or more |
 | Rent | R16 000 per month or less |
-| Area | Within ~10 min drive of **InsideOut** (Lenchen Ave, Centurion) or **Drive.co.za** (Guernsey Business Park, Saltus St, Irene Ext 192). Places 10–17 min away go in the "just outside" tab. `scripts/geo.py` works this out. |
+| Area | Within ~10 min drive of **TecWise** (Estcourt Ave, Wierdapark, Centurion) or **Drive.co.za** (Guernsey Business Park, Saltus St, Irene Ext 192). Places 10–17 min away go in the "just outside" tab. `scripts/geo.py` works this out. |
 | Nice to have | Pet friendly (two cats – "no cats" or "no pets" is a dealbreaker worth recording), fibre, good security |
 
-Suburbs that usually qualify: Centurion Central, Die Hoewes, Lyttelton Manor, Highveld (incl. Eco Park,
-Highveld Techno Park), Irene (incl. Hereford, Galloway, Southdowns, Irene Farm Villages), Doringkloof,
-Pierre van Ryneveld, Clubview, Zwartkop, Hennopspark, Eldoraigne, Eldo Glen, Wierda Park.
-Just outside: Valhalla, Louwlardia / Golden Fields, Glen Lauriston / Eldo Lakes, Midstream, Heuweloord.
-Skip: Kosmosdal, The Reeds, Laudium, Erasmia, Olievenhoutbosch, Raslouw, Thatchfield, Monavoni, Amberfield
-(too far), and anything in "Zwartkoppies" (a different area east of Pretoria that is sometimes tagged Zwartkop).
+Suburbs that usually qualify: near TecWise – Wierdapark, Eldoraigne, Eldo Glen, Rooihuiskraal, The Reeds,
+Amberfield, Heuweloord, Heuwelsig, Celtisdal, Raslouw, Thatchfield, Monavoni; near Drive – Irene (incl. Hereford,
+Galloway, Southdowns), Highveld (incl. Eco Park), Doringkloof, Pierre van Ryneveld, Rietvalleipark; in between –
+Centurion Central, Die Hoewes, Zwartkop, Hennopspark, Clubview, Lyttelton. `scripts/geo.py` decides the tier;
+add a suburb to its CENTRES list when a new one turns up. Skip anything in "Zwartkoppies" (east of Pretoria,
+sometimes tagged Zwartkop).
 
 ## Sources (use WebFetch; the shell cannot reach these sites)
 
 1. **Property24** – filtered search works with WebFetch:
    `https://www.property24.com/to-rent/centurion/gauteng/3?sp=bd%3d3%26bth%3d2%26pt%3d16000`
    then `/p2`, `/p3`, … before the `?sp=` until a page has no listings (about 7 pages).
-   Keep only the suburbs above. Open the detail page only for listings that are new since
+   Keep everything; `scripts/merge.py` drops places more than ~17 minutes from both work locations. Open the detail page only for listings that are new since
    `data/listings.json` (to read pets, fibre, security, agency, agent, availability, address).
    If Property24 answers "Server unavailable", skip it for tonight and leave it out of `sources_ok`.
 2. **Private Property** – WebFetch drops search filters, so read each suburb page and pick the 3-bed,
@@ -34,9 +34,9 @@ Skip: Kosmosdal, The Reeds, Laudium, Erasmia, Olievenhoutbosch, Raslouw, Thatchf
    `https://www.privateproperty.co.za/to-rent/gauteng/centurion/centurion-east/<slug>/<id>`
    (die-hoewes/198, lyttelton-manor/1709, highveld/197, irene/1050, clubview/195, zwartkop/201,
    hennopspark/1280, doringkloof/213, pierre-van-ryneveld/199, centurion-central/2164,
-   golden-fields-estate/7331, midstream-estate/762) and
+   golden-fields-estate/7331) and
    `https://www.privateproperty.co.za/to-rent/gauteng/centurion/centurion-west/<slug>/<id>`
-   (eldoraigne/196, wierda-park/202). Add `?page=2` while there are more pages.
+   (eldoraigne/196, wierda-park/202, rooihuiskraal/1295, rooihuiskraal-north/205, amberfield/206, heuweloord/…, the-reeds/…, celtisdal/1287 – take ids from the suburb links on any Centurion West page). Add `?page=2` while there are more pages.
    Open detail pages only for new listings.
 3. **MyProperty** – `https://www.myproperty.co.za/en-za/to-rent/gauteng/centurion?bedrooms=3&bathrooms=2&maxPrice=16000`
    (skip anything marked "Rented").
