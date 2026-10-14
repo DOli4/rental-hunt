@@ -1,0 +1,455 @@
+<title>Centurion Rental Hunt</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: sticky toolbar over a card grid; a detail drawer slides in from the right (bottom sheet on phones); Map is a hand-drawn plot of pins around the two anchors. */
+:root{
+  --bg:#f6f5f9; --surface:#ffffff; --sunk:#eeecf3; --line:#dedbe7; --fg:#1d1a26; --muted:#6a6578;
+  --accent:#6a4fb3;           /* jacaranda */
+  --accent-ink:#ffffff; --accent-soft:#ece6fa;
+  --good:#1f7a4d; --good-soft:#e2f3ea; --warn:#9a5b00; --warn-soft:#fbefd9; --bad:#b3363a; --bad-soft:#f9e3e3;
+  --info:#285f9e; --info-soft:#e3edf8;
+  --f-display:"Familjen Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Figtree", "Segoe UI", system-ui, sans-serif;
+  --f-num:"IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141219; --surface:#1d1a25; --sunk:#252130; --line:#363145; --fg:#ece9f3; --muted:#a29cb3;
+  --accent:#a68cf0; --accent-ink:#17121f; --accent-soft:#2c2442;
+  --good:#5fcf95; --good-soft:#163527; --warn:#e9b45a; --warn-soft:#3a2b10; --bad:#f08488; --bad-soft:#3d1d20;
+  --info:#7fb1ec; --info-soft:#18283c; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#141219; --surface:#1d1a25; --sunk:#252130; --line:#363145; --fg:#ece9f3; --muted:#a29cb3;
+  --accent:#a68cf0; --accent-ink:#17121f; --accent-soft:#2c2442;
+  --good:#5fcf95; --good-soft:#163527; --warn:#e9b45a; --warn-soft:#3a2b10; --bad:#f08488; --bad-soft:#3d1d20;
+  --info:#7fb1ec; --info-soft:#18283c; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--f-body);margin:0}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+
+/* header */
+header.top{padding-block:22px 10px}
+.titleRow{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.titleRow h1{font-size:clamp(24px,3.4vw,34px);font-weight:700}
+.titleRow h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin-top:4px;font-size:14px}
+.stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px;display:flex;gap:8px;align-items:baseline;font-size:13px}
+.stat b{font-family:var(--f-num);font-size:15px}
+
+/* toolbar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;flex-direction:column;gap:10px;padding-block:10px}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.tab{border:0;background:transparent;padding:8px 12px;border-radius:8px;font-weight:600;color:var(--muted);white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--fg);color:var(--bg)}
+.tab .c{font-family:var(--f-num);font-size:12px;opacity:.75;margin-left:4px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:13px}
+.ctl select,.ctl input[type=search]{border:0;background:transparent;padding:3px 0;outline:none}
+.ctl input[type=search]{width:150px}
+.ctl input[type=range]{width:110px;accent-color:var(--accent)}
+.chipToggle{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13px}
+.chipToggle[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--fg)}
+
+/* grid + cards */
+main{padding-block:18px 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;cursor:pointer;position:relative;transition:border-color .15s, transform .15s}
+.card:hover{border-color:var(--accent)}
+.card.gone{opacity:.55}
+.card .head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.card h3{font-size:17px;font-weight:600}
+.card .where{font-size:13px;color:var(--muted);margin-top:2px}
+.price{font-family:var(--f-num);font-weight:600;font-size:19px;white-space:nowrap}
+.price small{font-size:11px;color:var(--muted);font-weight:500}
+.specs{display:flex;gap:12px;font-size:13px;color:var(--muted)}
+.specs b{color:var(--fg);font-family:var(--f-num);font-weight:600}
+.drive{display:flex;gap:6px;flex-wrap:wrap}
+.drv{font-size:12px;background:var(--sunk);border-radius:6px;padding:3px 7px}
+.drv b{font-family:var(--f-num)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:12px;border-radius:999px;padding:2px 9px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.chip.good{background:var(--good-soft);color:var(--good)} .chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.info{background:var(--info-soft);color:var(--info)}
+.card .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto;padding-top:8px;border-top:1px dashed var(--line)}
+.src{font-size:12px;color:var(--muted)}
+.heart{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600;display:flex;gap:6px;align-items:center}
+.heart[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.status{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:6px;padding:3px 7px}
+.st-new{background:var(--sunk);color:var(--muted)} .st-interested{background:var(--accent-soft);color:var(--accent)}
+.st-contacted{background:var(--info-soft);color:var(--info)} .st-viewing{background:var(--warn-soft);color:var(--warn)}
+.st-applied{background:var(--good-soft);color:var(--good)} .st-no{background:var(--bad-soft);color:var(--bad)}
+.newFlag{position:absolute;top:-8px;left:12px;background:var(--accent);color:var(--accent-ink);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:4px;padding:2px 6px}
+.note{font-size:13px;background:var(--sunk);border-radius:6px;padding:6px 8px;white-space:pre-wrap;overflow-wrap:anywhere}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:28px;text-align:center;color:var(--muted)}
+.empty h3{color:var(--fg);margin-bottom:6px}
+
+/* map */
+.mapBox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;overflow-x:auto}
+.mapBox svg{display:block;width:100%;min-width:620px;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,8,16,.4);z-index:20}
+.drawer{position:fixed;z-index:21;top:0;right:0;bottom:0;width:min(520px,100%);background:var(--bg);border-left:1px solid var(--line);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.dHead{padding:16px 18px 12px;border-bottom:1px solid var(--line);background:var(--surface);display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+.dHead h2{font-size:21px}
+.x{border:1px solid var(--line);background:var(--surface);border-radius:8px;width:34px;height:34px;flex:none;font-size:18px;line-height:1}
+.dBody{overflow-y:auto;padding:16px 18px 30px;display:flex;flex-direction:column;gap:18px}
+.sec{display:flex;flex-direction:column;gap:8px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.statusPick{display:flex;flex-wrap:wrap;gap:6px}
+.statusPick button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600}
+.statusPick button[aria-pressed="true"]{border-color:var(--fg);background:var(--fg);color:var(--bg)}
+.field{display:flex;flex-direction:column;gap:4px}
+.field input,.field textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+.field textarea{min-height:80px;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 12px;font-weight:600;font-size:14px;text-decoration:none;color:var(--fg)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.wa{background:var(--good);border-color:var(--good);color:var(--surface)}
+.btn[aria-disabled="true"]{opacity:.45;pointer-events:none}
+.msg{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:14px;white-space:pre-wrap}
+.saved{font-size:12px;color:var(--good);min-height:16px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;z-index:30}
+.banner{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:13px;margin-top:12px}
+details.settings summary{cursor:pointer;font-weight:600}
+@media (max-width:640px){
+  .drawer{top:auto;height:88%;width:100%;border-left:0;border-top:1px solid var(--line);border-radius:14px 14px 0 0;padding-left:env(safe-area-inset-left,0px)}
+  .ctl input[type=search]{width:110px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top wrap">
+  <div class="titleRow">
+    <div>
+      <h1>Centurion <span>Rental Hunt</span></h1>
+      <div class="sub">3 bed · 2 bath · up to R16 000 · within ~10 min of InsideOut (Lenchen Ave) or Drive (Irene). Refreshed every evening at 6pm.</div>
+    </div>
+    <div class="sub" id="updated">Loading listings…</div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="banner" id="banner" hidden></div>
+</header>
+
+<div class="bar">
+  <div class="wrap">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="filters">
+      <label class="ctl"><span class="muted">Search</span><input id="q" type="search" placeholder="suburb, estate, agent"></label>
+      <label class="ctl"><span class="muted">Max</span><input id="max" type="range" min="8000" max="16000" step="250" value="16000"><span class="num" id="maxOut">R16 000</span></label>
+      <label class="ctl"><span class="muted">Sort</span>
+        <select id="sort">
+          <option value="price">Cheapest first</option>
+          <option value="drive">Closest to Drive</option>
+          <option value="insideout">Closest to InsideOut</option>
+          <option value="best">Best match</option>
+          <option value="new">Newest first</option>
+        </select></label>
+      <button class="chipToggle" id="fPets" aria-pressed="false">Pets OK</button>
+      <button class="chipToggle" id="fFibre" aria-pressed="false">Fibre</button>
+      <button class="chipToggle" id="fSec" aria-pressed="false">Security estate</button>
+      <button class="chipToggle" id="fHide" aria-pressed="true">Hide "not for us"</button>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div id="view"></div>
+</main>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-modal="true" role="dialog" aria-labelledby="dTitle"></aside>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const ANCHORS = { insideout:{name:"InsideOut", lat:-25.8530, lng:28.1900}, drive:{name:"Drive", lat:-25.8548, lng:28.2476} };
+const SUBURBS = {"Die Hoewes":[-25.846,28.195],"Lyttelton":[-25.828,28.205],"Highveld":[-25.870,28.230],"Irene":[-25.876,28.228],"Clubview":[-25.840,28.165],"Zwartkop":[-25.838,28.176],"Doringkloof":[-25.858,28.215],"Pierre van Ryneveld":[-25.885,28.255],"Eldoraigne":[-25.856,28.155],"Wierda Park":[-25.857,28.142],"Valhalla":[-25.816,28.150],"Louwlardia":[-25.896,28.215],"Eldo Lakes":[-25.876,28.140],"Midstream":[-25.925,28.220],"Heuweloord":[-25.890,28.140]};
+const STATUSES = [["new","New"],["interested","Interested"],["contacted","Contacted"],["viewing","Viewing booked"],["applied","Applied"],["no","Not for us"]];
+const STATUS_LABEL = Object.fromEntries(STATUSES);
+const DEFAULT_TEMPLATE = "Hi {agent},\n\nI'm interested in the {beds}-bedroom {type} in {suburb} listed at R{price} pm ({link}).\n\nIs it still available? We have two indoor cats, would the landlord consider them? When could we come and view it?\n\nThanks,\nDieter";
+
+const S = { listings:new Map(), track:new Map(), meta:{}, settings:{}, tab:"all", openId:null, db:null, user:null, me:null, names:{}, loaded:false };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rand = n => "R" + Number(n).toLocaleString("en-ZA").replace(/,/g," ");
+const store = { get(k,d){ try{ const v=localStorage.getItem("rh:"+k); return v==null?d:JSON.parse(v);}catch(e){return d} }, set(k,v){ try{localStorage.setItem("rh:"+k,JSON.stringify(v))}catch(e){} } };
+
+function toast(t){ const el=$("toast"); el.textContent=t; el.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>el.hidden=true,2200); }
+function tr(id){ return S.track.get(id) || {}; }
+function statusOf(id){ return tr(id).status || "new"; }
+function phoneOf(l){ return tr(l.id).phone || l.phone || ""; }
+function emailOf(l){ return tr(l.id).email || l.email || ""; }
+function intl(p){ const d=String(p).replace(/\D/g,""); if(!d) return ""; if(d.startsWith("27")) return d; if(d.startsWith("0")) return "27"+d.slice(1); return d; }
+function prettyPhone(p){ const d=String(p).replace(/\D/g,""); return d.length===10 ? d.replace(/(\d{3})(\d{3})(\d{4})/,"$1 $2 $3") : p; }
+
+function petsChip(p){
+  p = (p||"unknown").toLowerCase();
+  if(p.startsWith("yes")) return ["Pets OK","good"];
+  if(p.includes("small")) return ["Small pets OK","good"];
+  if(p.includes("dogs only")) return ["Dogs only, no cats","bad"];
+  if(p==="no") return ["No pets","bad"];
+  return ["Pets: ask","warn"];
+}
+function petsOk(l){ const p=(l.pets||"").toLowerCase(); return p.startsWith("yes")||p.includes("small"); }
+function fibreOk(l){ const f=(l.fibre||"").toLowerCase(); return f.startsWith("yes")||f.includes("ready")||f.includes("free"); }
+function secOk(l){ return /24|guard|boom|access|estate|gated|electric|cctv|secur/i.test(l.security||""); }
+function score(l){ let s=0; if(petsOk(l)) s+=3; if(fibreOk(l)) s+=1; if(secOk(l)) s+=1; s+= (16000-l.price)/4000; s-= Math.min(l.min_drive,l.min_insideout)/10; if(l.tier!=="core") s-=1; return s; }
+function isNew(l){ return S.meta.last_run && l.first_seen === S.meta.last_run && l.first_seen !== S.meta.first_run; }
+
+function filtered(){
+  const q=$("q").value.trim().toLowerCase(), max=+$("max").value;
+  let arr=[...S.listings.values()];
+  arr = arr.filter(l=>{
+    const st=statusOf(l.id);
+    if(S.tab==="all" && (l.tier!=="core" || l.active===false)) return false;
+    if(S.tab==="nearby" && (l.tier!=="nearby" || l.active===false)) return false;
+    if(S.tab==="shortlist" && !["interested","contacted","viewing","applied"].includes(st)) return false;
+    if(S.tab==="new" && !isNew(l)) return false;
+    if(S.tab==="gone" && l.active!==false) return false;
+    if(S.tab!=="shortlist" && S.tab!=="gone" && $("fHide").getAttribute("aria-pressed")==="true" && st==="no") return false;
+    if(l.price>max) return false;
+    if($("fPets").getAttribute("aria-pressed")==="true" && !petsOk(l)) return false;
+    if($("fFibre").getAttribute("aria-pressed")==="true" && !fibreOk(l)) return false;
+    if($("fSec").getAttribute("aria-pressed")==="true" && !secOk(l)) return false;
+    if(q){ const hay=[l.suburb,l.address,l.agency,l.agent,l.type,l.summary,l.source,tr(l.id).note].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  });
+  const k=$("sort").value;
+  arr.sort((a,b)=> k==="price"? a.price-b.price : k==="drive"? a.min_drive-b.min_drive : k==="insideout"? a.min_insideout-b.min_insideout : k==="new"? String(b.first_seen).localeCompare(String(a.first_seen)) : score(b)-score(a));
+  return arr;
+}
+
+function renderStats(){
+  const all=[...S.listings.values()].filter(l=>l.active!==false);
+  const count=st=>all.filter(l=>statusOf(l.id)===st).length;
+  const newN=all.filter(isNew).length;
+  $("stats").innerHTML = [
+    ["Places",all.length],["New today",newN],["Interested",count("interested")],["Contacted",count("contacted")],["Viewings",count("viewing")],["Applied",count("applied")]
+  ].map(([k,v])=>`<div class="stat"><b>${v}</b><span class="muted">${k}</span></div>`).join("");
+  const u = S.meta.last_run ? `Last search: <span class="num">${esc(S.meta.last_run)}</span>${S.meta.sources?` · ${esc(S.meta.sources)}`:""}` : (S.loaded?"No search results yet":"Loading listings…");
+  $("updated").innerHTML = u;
+}
+
+function renderTabs(){
+  const all=[...S.listings.values()];
+  const short=all.filter(l=>["interested","contacted","viewing","applied"].includes(statusOf(l.id))).length;
+  const tabs=[["all","Within 10 min",all.filter(l=>l.tier==="core"&&l.active!==false).length],["nearby","Just outside",all.filter(l=>l.tier==="nearby"&&l.active!==false).length],["shortlist","Our shortlist",short],["new","New today",all.filter(isNew).length],["map","Map",null],["gone","No longer listed",all.filter(l=>l.active===false).length]];
+  $("tabs").innerHTML = tabs.map(([k,t,c])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-tab="${k}">${t}${c!=null?`<span class="c">${c}</span>`:""}</button>`).join("");
+}
+
+function card(l){
+  const st=statusOf(l.id), t=tr(l.id);
+  const [pl,pc]=petsChip(l.pets);
+  const chips=[`<span class="chip ${pc}">${pl}</span>`];
+  if(fibreOk(l)) chips.push(`<span class="chip good">Fibre</span>`);
+  if(secOk(l)) chips.push(`<span class="chip info">Security</span>`);
+  if(l.available) chips.push(`<span class="chip">Available ${esc(l.available)}</span>`);
+  if(l.note) chips.push(`<span class="chip warn">Check note</span>`);
+  const fav = st!=="new" && st!=="no";
+  return `<article class="card ${l.active===false?"gone":""}" data-id="${esc(l.id)}" tabindex="0">
+    ${isNew(l)?`<span class="newFlag">New</span>`:""}
+    <div class="head">
+      <div style="min-width:0"><h3>${esc(l.type)} · ${esc(l.suburb)}</h3><div class="where">${esc(l.address||"Address on request")}</div></div>
+      <div class="price">${rand(l.price)}<small> pm</small></div>
+    </div>
+    <div class="specs"><span><b>${l.beds}</b> bed</span><span><b>${l.baths}</b> bath</span>${l.size_m2?`<span><b>${l.size_m2}</b> m²</span>`:""}</div>
+    <div class="drive"><span class="drv">InsideOut <b>~${l.min_insideout}</b> min</span><span class="drv">Drive <b>~${l.min_drive}</b> min</span></div>
+    <div class="chips">${chips.join("")}</div>
+    ${t.note?`<div class="note">${esc(t.note)}</div>`:""}
+    <div class="foot">
+      <span class="src">${esc(l.source)}${l.agency?` · ${esc(l.agency)}`:""}</span>
+      <span class="row" style="align-items:center">
+        ${st!=="new"?`<span class="status st-${st}">${STATUS_LABEL[st]}</span>`:""}
+        <button class="heart" data-heart="${esc(l.id)}" aria-pressed="${fav}" title="Mark as interested">${fav?"♥ Saved":"♡ Interested"}</button>
+      </span>
+    </div>
+  </article>`;
+}
+
+function renderList(){
+  const arr=filtered();
+  if(!S.loaded){ $("view").innerHTML=`<div class="empty"><h3>Loading the shared list…</h3>Listings, saved places and notes appear here once the store answers.</div>`; return; }
+  if(!S.listings.size){ $("view").innerHTML=`<div class="empty"><h3>No listings yet</h3>The 6pm search adds places here every evening. Ask Claude to run the search now if you can't wait.</div>`; return; }
+  if(!arr.length){
+    const why = S.tab==="shortlist" ? "Tap ♡ Interested on a place to add it to your shortlist." : S.tab==="new" ? "Nothing new came in on the last search." : S.tab==="gone" ? "Every place is still listed." : "No places match these filters. Try a higher max price or switch filters off.";
+    $("view").innerHTML=`<div class="empty"><h3>Nothing to show</h3>${why}</div>`; return;
+  }
+  $("view").innerHTML=`<div class="grid">${arr.map(card).join("")}</div>`;
+}
+
+function renderMap(){
+  const all=[...S.listings.values()].filter(l=>l.active!==false && l.lat);
+  const W=900,H=560, lat0=-25.865, kx=Math.cos(lat0*Math.PI/180);
+  const minLng=28.11,maxLng=28.29,maxLat=-25.80,minLat=-25.94;
+  const sx=(maxLng-minLng)*kx, sy=(maxLat-minLat), scale=Math.min(W/sx,H/sy);
+  const px=lng=>((lng-minLng)*kx*scale), py=lat=>((maxLat-lat)*scale);
+  const kmPx = scale/111.32; const ring=4.94*kmPx; // ~10 min
+  const color=st=>({interested:"var(--accent)",contacted:"var(--info)",viewing:"var(--warn)",applied:"var(--good)",no:"var(--bad)"}[st]||"var(--muted)");
+  const jitter=(id)=>{let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))|0;return [((h&255)/255-.5)*14, (((h>>8)&255)/255-.5)*14];};
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Map of listings around InsideOut and Drive">`;
+  s+=`<rect width="${W}" height="${H}" fill="var(--sunk)" rx="8"/>`;
+  for(const a of Object.values(ANCHORS)) s+=`<circle cx="${px(a.lng)}" cy="${py(a.lat)}" r="${ring}" fill="var(--accent-soft)" fill-opacity=".55" stroke="var(--accent)" stroke-dasharray="4 5" stroke-opacity=".6"/>`;
+  for(const [n,[la,lo]] of Object.entries(SUBURBS)) s+=`<text x="${px(lo)}" y="${py(la)}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="Figtree, sans-serif" opacity=".85">${esc(n)}</text>`;
+  for(const l of all){ let [jx,jy]= l.geo==="exact"?[0,0]:jitter(l.id); const st=statusOf(l.id);
+    s+=`<g class="pin" data-id="${esc(l.id)}" style="cursor:pointer"><title>${esc(l.type+" · "+l.suburb+" · "+rand(l.price))}</title><circle cx="${px(l.lng)+jx}" cy="${py(l.lat)+jy+14}" r="${st==="new"?6:8}" fill="${color(st)}" stroke="var(--surface)" stroke-width="2"/></g>`; }
+  for(const [k,a] of Object.entries(ANCHORS)){ const x=px(a.lng),y=py(a.lat);
+    s+=`<rect x="${x-9}" y="${y-9}" width="18" height="18" rx="4" fill="var(--fg)"/><text x="${x}" y="${y-16}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--fg)" font-family="Familjen Grotesk, sans-serif">${a.name}</text>`; }
+  s+=`<text x="${W-12}" y="${H-12}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="Figtree, sans-serif">Shaded circles ≈ 10 min drive · pins without a street address sit at the suburb centre</text></svg>`;
+  $("view").innerHTML = `<div class="mapBox">${s}</div>
+   <div class="legend"><span><i style="background:var(--muted)"></i>Not marked</span><span><i style="background:var(--accent)"></i>Interested</span><span><i style="background:var(--info)"></i>Contacted</span><span><i style="background:var(--warn)"></i>Viewing booked</span><span><i style="background:var(--good)"></i>Applied</span><span><i style="background:var(--bad)"></i>Not for us</span></div>
+   <p class="muted" style="font-size:13px">Tap a pin to open the place. Each place also has an "Open in Google Maps" button for the exact spot and directions.</p>`;
+}
+
+function render(){ renderStats(); renderTabs(); S.tab==="map" ? renderMap() : renderList(); if(S.openId) renderDrawer(); }
+
+/* ---------- drawer ---------- */
+function fillTemplate(l){
+  const tpl = S.settings.template || DEFAULT_TEMPLATE;
+  const first=(l.agent||"").split(" ")[0];
+  return tpl.replace(/\{agent\}/g, first||"there").replace(/\{beds\}/g,l.beds).replace(/\{type\}/g,(l.type||"place").toLowerCase()).replace(/\{suburb\}/g,l.suburb).replace(/\{price\}/g,Number(l.price).toLocaleString("en-ZA").replace(/,/g," ")).replace(/\{link\}/g,l.url);
+}
+function openDrawer(id){ S.openId=id; $("scrim").hidden=false; $("drawer").hidden=false; renderDrawer(true); try{history.replaceState(null,"","#"+id.replace(/[^\w.~-]/g,"_"))}catch(e){} }
+function closeDrawer(){ S.openId=null; $("scrim").hidden=true; $("drawer").hidden=true; try{history.replaceState(null,"",location.pathname+location.search)}catch(e){} }
+
+function renderDrawer(first){
+  const l=S.listings.get(S.openId); if(!l){ closeDrawer(); return; }
+  const t=tr(l.id), st=statusOf(l.id), phone=phoneOf(l), email=emailOf(l), msg=fillTemplate(l);
+  const active=document.activeElement && document.activeElement.closest && document.activeElement.closest("#drawer") ? document.activeElement.id : null;
+  const keep = {}; ["dPhone","dEmail","dNote","dView"].forEach(k=>{ const el=$(k); if(el && el===document.activeElement) keep[k]=el.value; });
+  const [pl,pc]=petsChip(l.pets);
+  const who = t.updatedBy ? (S.names[t.updatedBy] || "someone") : null;
+  const wa = intl(phone) ? `https://wa.me/${intl(phone)}?text=${encodeURIComponent(msg)}` : "";
+  $("drawer").innerHTML = `
+   <div class="dHead">
+     <div style="min-width:0"><div class="label">${esc(l.source)}${l.tier==="nearby"?" · just outside":""}</div><h2 id="dTitle">${esc(l.type)} in ${esc(l.suburb)}</h2>
+       <div class="muted" style="margin-top:2px">${esc(l.address||"Address on request")}</div>
+       <div class="price" style="margin-top:6px">${rand(l.price)}<small> pm${l.deposit?` · deposit ${esc(l.deposit)}`:""}</small></div></div>
+     <button class="x" id="dClose" aria-label="Close">×</button>
+   </div>
+   <div class="dBody">
+     <div class="sec"><div class="label">Where we are with it</div>
+       <div class="statusPick">${STATUSES.map(([k,v])=>`<button data-status="${k}" aria-pressed="${st===k}">${v}</button>`).join("")}</div>
+       ${who?`<div class="muted" style="font-size:12px">Last changed by ${esc(who)}${t.updatedAt?` · ${new Date(t.updatedAt).toLocaleString("en-ZA",{dateStyle:"medium",timeStyle:"short"})}`:""}</div>`:""}
+     </div>
+
+     <div class="sec"><div class="label">Contact</div>
+       <dl class="kv"><dt>Agency</dt><dd>${esc(l.agency||"Not shown on listing")}</dd><dt>Agent</dt><dd>${esc(l.agent||"Not shown on listing")}</dd>
+       ${l.phone_work?`<dt>Office</dt><dd class="num">${esc(prettyPhone(l.phone_work))}</dd>`:""}</dl>
+       <div class="row">
+         <div class="field" style="flex:1 1 160px"><label class="label" for="dPhone">Phone / WhatsApp</label><input id="dPhone" inputmode="tel" placeholder="e.g. 082 123 4567" value="${esc(keep.dPhone ?? prettyPhone(phone))}"></div>
+         <div class="field" style="flex:1 1 200px"><label class="label" for="dEmail">Email</label><input id="dEmail" type="email" placeholder="agent@agency.co.za" value="${esc(keep.dEmail ?? email)}"></div>
+       </div>
+       ${!phone?`<div class="muted" style="font-size:13px">The site hides the number behind a "Show number" button. Open the listing, tap it, and paste the number here so you both have it.</div>`:""}
+       <div class="row">
+         <a class="btn wa" href="${wa||"#"}" target="_blank" rel="noopener" aria-disabled="${!wa}">WhatsApp</a>
+         <a class="btn" href="${phone?"tel:"+intl(phone).replace(/^27/,"0"):"#"}" aria-disabled="${!phone}">Call</a>
+         <a class="btn" href="${email?`mailto:${esc(email)}?subject=${encodeURIComponent("Rental enquiry: "+l.beds+"-bed "+l.type+" in "+l.suburb)}&body=${encodeURIComponent(msg)}`:"#"}" aria-disabled="${!email}">Email</a>
+         <a class="btn primary" href="${esc(l.url)}" target="_blank" rel="noopener">Open listing</a>
+       </div>
+       ${phone?`<div class="muted" style="font-size:12px">Number: <span class="num">${esc(prettyPhone(phone))}</span> <button class="btn" style="padding:2px 8px;font-size:12px" data-copy="${esc(prettyPhone(phone))}">Copy</button></div>`:""}
+     </div>
+
+     <div class="sec"><div class="label">Message (filled in for this place)</div>
+       <div class="msg" id="dMsg">${esc(msg)}</div>
+       <div class="row"><button class="btn" id="dCopyMsg">Copy message</button>${wa?`<a class="btn wa" href="${wa}" target="_blank" rel="noopener">Send on WhatsApp</a>`:""}</div>
+     </div>
+
+     <div class="sec"><div class="label">Details</div>
+       <div class="chips"><span class="chip ${pc}">${pl}</span>${fibreOk(l)?`<span class="chip good">Fibre ${esc(l.fibre)}</span>`:`<span class="chip warn">Fibre: ask</span>`}${secOk(l)?`<span class="chip info">Security</span>`:`<span class="chip warn">Security: ask</span>`}${l.solar?`<span class="chip good">Backup power</span>`:""}</div>
+       <dl class="kv">
+         <dt>Size</dt><dd><span class="num">${l.beds}</span> bed · <span class="num">${l.baths}</span> bath${l.size_m2?` · <span class="num">${l.size_m2}</span> m²`:""}</dd>
+         <dt>Available</dt><dd>${esc(l.available||"Ask")}</dd>
+         <dt>Security</dt><dd>${esc(l.security||"Not described")}</dd>
+         <dt>Pets</dt><dd>${esc(l.pets||"unknown")}</dd>
+         <dt>Drive time</dt><dd>InsideOut ~<span class="num">${l.min_insideout}</span> min · Drive ~<span class="num">${l.min_drive}</span> min <span class="muted">(estimate)</span></dd>
+         <dt>First seen</dt><dd class="num">${esc(l.first_seen||"")}</dd>
+         ${(l.price_history||[]).length>1?`<dt>Price history</dt><dd class="num">${l.price_history.map(p=>`${esc(p.date)}: ${rand(p.price)}`).join("<br>")}</dd>`:""}
+       </dl>
+       ${l.summary?`<p style="margin:0">${esc(l.summary)}</p>`:""}
+       ${l.note?`<div class="banner" style="margin:0">${esc(l.note)}</div>`:""}
+       ${(l.dupes||[]).length?`<div class="muted" style="font-size:12px">Also listed elsewhere (same place on another site).</div>`:""}
+       <div class="row"><a class="btn" href="${esc(l.maps_url)}" target="_blank" rel="noopener">Open in Google Maps</a>
+         <a class="btn" href="https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(l.geo==="exact"?l.lat+","+l.lng:(l.address?l.address+", ":"")+l.suburb+", Centurion")}&destination=Drive.co.za+Guernsey+Business+Park+Saltus+Street+Irene" target="_blank" rel="noopener">Route to Drive</a></div>
+     </div>
+
+     <div class="sec"><div class="label">Our notes</div>
+       <div class="field"><label class="label" for="dView">Viewing date / time</label><input id="dView" placeholder="e.g. Sat 18 Oct, 10:00" value="${esc(keep.dView ?? (t.viewing||""))}"></div>
+       <div class="field"><label class="label" for="dNote">Notes</label><textarea id="dNote" placeholder="What did the agent say? What did we like?">${esc(keep.dNote ?? (t.note||""))}</textarea></div>
+       <div class="row" style="align-items:center"><button class="btn primary" id="dSave">Save contact &amp; notes</button><span class="saved" id="dSaved"></span></div>
+     </div>
+   </div>`;
+  if(active && $(active)) $(active).focus();
+  if(first) $("dClose").focus();
+}
+
+async function saveTrack(id, patch){
+  const cur = tr(id);
+  const next = Object.assign({}, cur, patch, { updatedAt: new Date().toISOString(), updatedBy: S.me || cur.updatedBy || null });
+  S.track.set(id, next); render();
+  if(!S.db){ toast("Couldn't save: open this page signed in to Claude"); return false; }
+  try{ await S.db.doc("track/"+id).set(next); return true; }
+  catch(e){ toast(e && e.code==="permission_denied" ? "You have view-only access, ask Dieter for edit access" : "Couldn't save, try again"); return false; }
+}
+
+async function copy(text){ try{ await navigator.clipboard.writeText(text); toast("Copied"); }catch(e){ toast("Select the text and copy it"); } }
+
+/* ---------- events ---------- */
+document.addEventListener("click", async e=>{
+  const tab=e.target.closest("[data-tab]"); if(tab){ S.tab=tab.dataset.tab; store.set("tab",S.tab); render(); return; }
+  const heart=e.target.closest("[data-heart]"); if(heart){ e.stopPropagation(); const id=heart.dataset.heart; const st=statusOf(id); await saveTrack(id,{status:(st==="new"||st==="no")?"interested":"new"}); toast(statusOf(id)==="interested"?"Added to your shortlist":"Removed from shortlist"); return; }
+  const pin=e.target.closest(".pin"); if(pin){ openDrawer(pin.dataset.id); return; }
+  const c=e.target.closest(".card"); if(c && !e.target.closest("a,button")){ openDrawer(c.dataset.id); return; }
+  if(e.target.id==="dClose"||e.target.id==="scrim"){ closeDrawer(); return; }
+  const sp=e.target.closest("[data-status]"); if(sp && S.openId){ await saveTrack(S.openId,{status:sp.dataset.status}); toast("Marked "+STATUS_LABEL[sp.dataset.status].toLowerCase()); return; }
+  const cp=e.target.closest("[data-copy]"); if(cp){ copy(cp.dataset.copy); return; }
+  if(e.target.id==="dCopyMsg"){ copy($("dMsg").textContent); return; }
+  if(e.target.id==="dSave" && S.openId){ const ok=await saveTrack(S.openId,{phone:$("dPhone").value.trim(),email:$("dEmail").value.trim(),note:$("dNote").value.trim(),viewing:$("dView").value.trim()}); if(ok){ const el=$("dSaved"); if(el) el.textContent="Saved for both of you"; } return; }
+  for(const [bid] of [["fPets"],["fFibre"],["fSec"],["fHide"]]) if(e.target.id===bid){ const b=e.target; b.setAttribute("aria-pressed", b.getAttribute("aria-pressed")!=="true"); store.set(bid,b.getAttribute("aria-pressed")); render(); return; }
+});
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape" && S.openId) closeDrawer();
+  if(e.key==="Enter" && e.target.classList && e.target.classList.contains("card")) openDrawer(e.target.dataset.id);
+});
+$("q").addEventListener("input", ()=>render());
+$("sort").addEventListener("change", ()=>{ store.set("sort",$("sort").value); render(); });
+$("max").addEventListener("input", ()=>{ $("maxOut").textContent=rand($("max").value); store.set("max",$("max").value); render(); });
+
+/* restore per-viewer view prefs */
+S.tab = store.get("tab","all"); $("sort").value=store.get("sort","price"); $("max").value=store.get("max",16000); $("maxOut").textContent=rand($("max").value);
+for(const b of ["fPets","fFibre","fSec","fHide"]){ const v=store.get(b,null); if(v!=null) $(b).setAttribute("aria-pressed",v); }
+render();
+
+/* ---------- live data ---------- */
+(async function boot(){
+  const use = window.claude && window.claude.use ? n => window.claude.use(n) : async () => null;
+  const db = await use("db"); S.db = db;
+  const user = await use("user"); S.user = user;
+  if(user){ try{ S.me = await user.id(); }catch(e){} }
+  if(!db){ S.loaded=true; $("banner").hidden=false; $("banner").textContent="Open this page while signed in to Claude to see the shared list and save places."; render(); return; }
+  let got=0; const ready=()=>{ if(++got>=2){ S.loaded=true; render(); if(location.hash.length>1){ const h=location.hash.slice(1); const hit=[...S.listings.keys()].find(k=>k.replace(/[^\w.~-]/g,"_")===h); if(hit) openDrawer(hit);} } };
+  db.collection("listings").onSnapshot(snap=>{ S.listings=new Map(snap.docs.map(d=>[d.id,Object.assign({id:d.id},d.data())])); if(S.loaded) render(); else ready(); }, err=>{ $("banner").hidden=false; $("banner").textContent="Couldn't load listings right now. Reload the page in a minute."; });
+  db.collection("track").onSnapshot(async snap=>{
+    S.track=new Map(snap.docs.map(d=>[d.id,d.data()]));
+    const ids=[...new Set([...S.track.values()].map(t=>t.updatedBy).filter(Boolean))];
+    if(user && ids.length){ try{ const ps=await user.profiles(ids); for(const id of ids) S.names[id]=(ps[id]&&ps[id].name)||"someone"; if(S.me) S.names[S.me]="you"; }catch(e){} }
+    if(S.loaded) render(); else ready();
+  });
+  db.doc("meta/run").onSnapshot(s=>{ S.meta=s.data()||{}; render(); });
+  db.doc("prefs/settings").onSnapshot(s=>{ S.settings=s.data()||{}; if(S.openId) renderDrawer(); });
+})();
+</script>
