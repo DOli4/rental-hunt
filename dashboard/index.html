@@ -35,6 +35,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .sel{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .sel select{appearance:none;background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:6px 26px 6px 12px;font-size:12px;color:var(--fg);
   background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 13px) 52%,calc(100% - 9px) 52%;background-size:4px 4px;background-repeat:no-repeat}
+.sel select option,.sel select optgroup{background:#1b1e1d;color:var(--fg)} .sel select optgroup{color:var(--muted);font-style:normal}
 .search{display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;min-width:0}
 .search input{background:transparent;border:0;outline:0;width:170px;font-size:12px}
 .search svg{flex:none}
@@ -264,8 +265,14 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
       <select id="fMax"><option>16000</option><option>15000</option><option>14000</option><option>13000</option><option>12000</option><option>11000</option></select></label>
     <label class="sel">Pets
       <select id="fPets"><option value="any">Any</option><option value="ok">Pets OK</option><option value="notno">Hide no-pets</option></select></label>
-    <label class="sel">Sort
-      <select id="sort"><option value="price">Cheapest</option><option value="drive">Closest to Drive</option><option value="tecwise">Closest to TecWise</option><option value="best">Best match</option><option value="new">Newest</option></select></label>
+    <label class="sel">Order by
+      <select id="sort">
+        <option value="best">Best match</option>
+        <optgroup label="Distance"><option value="drive">Closest to Drive</option><option value="tecwise">Closest to TecWise</option></optgroup>
+        <optgroup label="Price"><option value="price" selected>Price: low to high</option><option value="price_desc">Price: high to low</option></optgroup>
+        <optgroup label="Size"><option value="size_asc">Size: small to large</option><option value="size_desc">Size: large to small</option></optgroup>
+        <option value="new">Newest first</option>
+      </select></label>
     <label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Search suburb, estate, agent"></label>
   </div>
 
@@ -404,7 +411,12 @@ function listFor(tab){
     return passesBase(l);
   });
   const k=$("sort").value;
-  arr.sort((a,b)=> k==="price"?a.price-b.price : k==="drive"?a.min_drive-b.min_drive : k==="tecwise"?a.min_tecwise-b.min_tecwise : k==="new"?String(b.first_seen).localeCompare(String(a.first_seen)) : score(b)-score(a));
+  const sz=l=>Number(l.size_m2)||0;
+  const bySize=(a,b,dir)=>{ const x=sz(a), y=sz(b); if(!x!==!y) return x?-1:1; if(x!==y) return dir*(x-y); return dir*((a.beds||0)-(b.beds||0)) || a.price-b.price; };
+  arr.sort((a,b)=> k==="price"?a.price-b.price : k==="price_desc"?b.price-a.price
+    : k==="drive"?(a.min_drive-b.min_drive || a.price-b.price) : k==="tecwise"?(a.min_tecwise-b.min_tecwise || a.price-b.price)
+    : k==="size_asc"?bySize(a,b,1) : k==="size_desc"?bySize(a,b,-1)
+    : k==="new"?String(b.first_seen).localeCompare(String(a.first_seen)) : score(b)-score(a));
   return arr;
 }
 
