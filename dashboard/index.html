@@ -22,6 +22,7 @@ button,select,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .num{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
 .muted{color:var(--muted)}
 .wrap{max-width:1440px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
@@ -71,6 +72,13 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .anchor .pinA svg{transform:rotate(45deg)}
 .mapLegend{position:absolute;right:14px;top:14px;z-index:3;background:rgba(31,34,33,.9);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:12px;padding:9px 11px;font-size:11px;display:flex;flex-direction:column;gap:6px;max-width:210px}
 .mapLegend .li{display:flex;align-items:center;gap:8px}
+.lgHead{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:-2px 0 0}
+.lgHead:hover{color:var(--white)} .lgHead:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:4px}
+.lgChev{transition:transform .25s ease}
+.lgBody{display:flex;flex-direction:column;gap:6px;overflow:hidden;max-height:260px;transition:max-height .3s ease,opacity .25s ease}
+.mapLegend.min{gap:0;padding:7px 11px}
+.mapLegend.min .lgBody{max-height:0;opacity:0}
+.mapLegend.min .lgChev{transform:rotate(180deg)}
 .mapLegend .sw{width:12px;height:12px;border-radius:50%;flex:none}
 .mapArea{cursor:grab;touch-action:none;overflow:hidden}
 .mapArea.dragging{cursor:grabbing}
@@ -281,7 +289,9 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
       <canvas id="map" aria-label="Map of places around TecWise and Drive"></canvas>
       <div id="overlay"></div>
       <aside class="mapSide" id="mapSide" hidden aria-label="Selected place"></aside>
-      <div class="mapLegend" aria-label="Map legend">
+      <div class="mapLegend" id="mapLegend" aria-label="Map legend">
+        <button class="lgHead" id="lgToggle" type="button" aria-expanded="true" aria-controls="lgBody" title="Minimise legend"><span>Legend</span><svg class="lgChev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>
+        <div class="lgBody" id="lgBody">
         <div class="li"><span class="sw" style="background:#00F0FF"></span>Work · TecWise (Wierdapark)</div>
         <div class="li"><span class="sw" style="background:#FF5CA8"></span>Work · Drive (Irene)</div>
         <div class="li"><span class="sw" style="background:var(--pet)"></span>Pets OK</div>
@@ -289,6 +299,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
         <div class="li"><span class="sw" style="background:var(--red)"></span>No pets / no cats</div>
         <div class="li"><span class="sw" style="border:2px solid var(--white)"></span>On our shortlist</div>
         <div class="muted">Dashed circles ≈ 10 min drive. Drag to move, scroll or pinch to zoom.</div>
+        </div>
       </div>
       <div class="dock" role="toolbar" aria-label="Map filters">
         <button class="iconbtn" id="dAll" title="Show all markers" aria-pressed="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg></button>
@@ -750,6 +761,13 @@ setInterval(updSync, 10000);
 function countUps(){ document.querySelectorAll("[data-count]").forEach(el=>{ const k=el.dataset.count, to=+el.dataset.to, from=S.prevNums[k]; S.prevNums[k]=to; if(RM || from===undefined&&!S.loaded || from===to) return; const f=from===undefined?0:from, t0=performance.now(), dur=700;
   (function step(t){ const p=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-p,3); el.textContent=Math.round(f+(to-f)*e); if(p<1) requestAnimationFrame(step); })(t0); }); }
 const _render=render; render=function(){ _render(); countUps(); };
+/* legend minimise */
+(function(){ const lg=$("mapLegend"), bt=$("lgToggle"); if(!lg||!bt) return;
+  const set=m=>{ lg.classList.toggle("min",m); bt.setAttribute("aria-expanded",String(!m)); bt.title=m?"Show legend":"Minimise legend"; };
+  let m=false; try{ const v=localStorage.getItem("rh-legend-min"); m = v===null ? window.innerWidth<700 : v==="1"; }catch(e){}
+  set(m); bt.addEventListener("click",()=>{ m=!m; set(m); try{ localStorage.setItem("rh-legend-min",m?"1":"0"); }catch(e){} });
+})();
+
 /* ---------- live data ---------- */
 (async function boot(){
   const use = window.claude && window.claude.use ? n => window.claude.use(n) : async () => null;
