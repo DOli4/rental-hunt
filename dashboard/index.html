@@ -238,7 +238,17 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .msg{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:13px;white-space:pre-wrap}
 .saved{font-size:12px;color:var(--teal);min-height:16px}
 .x{width:34px;height:34px;flex:none;font-size:18px;line-height:1}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--white);color:#111;padding:8px 16px;border-radius:999px;font-size:13px;z-index:30}
+.toast{--tc:#BC6CFF;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;align-items:center;gap:9px;max-width:min(560px,calc(100vw - 32px));
+  padding:8px 16px 8px 9px;border-radius:999px;font-size:13px;color:#f4f7f5;overflow:hidden;isolation:isolate;
+  background:linear-gradient(color-mix(in srgb,var(--tc) 16%,#15171f),color-mix(in srgb,var(--tc) 10%,#111318)) padding-box, linear-gradient(120deg,var(--tc),color-mix(in srgb,var(--tc) 40%,#ffffff),var(--tc)) border-box;
+  border:1.5px solid transparent;box-shadow:0 0 0 1px color-mix(in srgb,var(--tc) 25%,transparent),0 0 22px color-mix(in srgb,var(--tc) 45%,transparent),0 10px 30px rgba(0,0,0,.45)}
+.toast .ti{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;line-height:1;background:var(--tc);color:#0b0f2b;box-shadow:0 0 12px var(--tc);animation:tiPop .5s cubic-bezier(.3,1.8,.5,1) both}
+.toast .tt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 0 10px color-mix(in srgb,var(--tc) 50%,transparent)}
+.toast::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(100deg,transparent 35%,color-mix(in srgb,var(--tc) 35%,transparent) 50%,transparent 65%);transform:translateX(-120%);animation:tSweep 1.1s ease-out .15s forwards}
+.toast.go{animation:toastIn .45s cubic-bezier(.2,1.4,.4,1), tGlow 1.6s ease-in-out .3s infinite}
+@keyframes tGlow{0%,100%{box-shadow:0 0 0 1px color-mix(in srgb,var(--tc) 25%,transparent),0 0 16px color-mix(in srgb,var(--tc) 35%,transparent),0 10px 30px rgba(0,0,0,.45)}50%{box-shadow:0 0 0 1px color-mix(in srgb,var(--tc) 55%,transparent),0 0 34px color-mix(in srgb,var(--tc) 75%,transparent),0 10px 30px rgba(0,0,0,.45)}}
+@keyframes tSweep{to{transform:translateX(120%)}}
+@keyframes tiPop{from{transform:scale(0) rotate(-90deg)}}
 
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,92,168,.55)}100%{box-shadow:0 0 0 14px rgba(255,92,168,0)}}
 .marker.fresh{animation:pulse 2.2s ease-out infinite}
@@ -286,7 +296,6 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .marker.flashm{animation:pingM 1.4s ease-out 2}
 @keyframes pingM{0%{box-shadow:0 0 0 0 rgba(255,92,168,.9)}100%{box-shadow:0 0 0 22px rgba(255,92,168,0)}}
 .tile:hover,.pill:hover,.btn:hover,.heart:hover{filter:brightness(1.12)}
-.toast{animation:toastIn .35s cubic-bezier(.2,1.4,.4,1)}
 @keyframes toastIn{from{transform:translate(-50%,20px);opacity:0}}
 .drawer:not([hidden]){animation:drawerIn .35s cubic-bezier(.2,.8,.2,1)}
 @keyframes drawerIn{from{transform:translateX(40px);opacity:0}}
@@ -390,7 +399,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 
 <div class="scrim" id="scrim" hidden></div>
 <aside class="drawer" id="drawer" hidden aria-modal="true" role="dialog" aria-labelledby="dTitle"></aside>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden><span class="ti" id="toastI"></span><span class="tt" id="toastT"></span></div>
 
 <script>
 const ANCHORS = { tecwise:{name:"TecWise", sub:"Estcourt Ave, Wierdapark", lat:-25.8722, lng:28.1590, color:"#00F0FF"}, drive:{name:"Drive", sub:"Guernsey Business Park, Irene", lat:-25.8538, lng:28.2506, color:"#FF5CA8"} };
@@ -410,7 +419,10 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const rand = n => "R" + Number(n).toLocaleString("en-ZA").replace(/[, ]/g," ");
 const store = { get(k,d){ try{ const v=localStorage.getItem("rh:"+k); return v==null?d:JSON.parse(v);}catch(e){return d} }, set(k,v){ try{localStorage.setItem("rh:"+k,JSON.stringify(v))}catch(e){} } };
-function toast(t){ const el=$("toast"); el.textContent=t; el.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>el.hidden=true,2200); }
+const TOAST_KIND={like:["#FF5CA8","♥"],unlike:["#8b9490","♡"],note:["#00F0FF","✎"],edit:["#FFB86B","✎"],del:["#ff4d5e","✕"],partner:["#BC6CFF","●"],error:["#ff4d5e","!"],copy:["#00F0FF","⧉"],info:["#BC6CFF","✦"],
+  interested:["#BC6CFF","★"],contacted:["#00F0FF","☏"],viewing:["#FFB86B","◉"],applied:["#34d399","✓"],no:["#ff4d5e","✕"],new:["#8b9490","○"]};
+function toast(t,kind){ const el=$("toast"); const [c,ic]=TOAST_KIND[kind]||TOAST_KIND.info; el.style.setProperty("--tc",c); $("toastI").textContent=ic; $("toastT").textContent=t; $("toastT").title=t;
+  el.hidden=false; el.classList.remove("go"); void el.offsetWidth; el.classList.add("go"); clearTimeout(toast.t); toast.t=setTimeout(()=>{ el.hidden=true; el.classList.remove("go"); }, kind==="partner"?4200:2600); }
 
 const tr = id => S.track.get(id) || {};
 const statusOf = id => tr(id).status || "new";
@@ -787,40 +799,40 @@ function renderDrawer(first){
 async function saveTrack(id, patch){
   const cur=tr(id), next=Object.assign({},cur,patch,{updatedAt:new Date().toISOString(),updatedBy:S.me||cur.updatedBy||null});
   S.track.set(id,next); render();
-  if(!S.db){ toast("Couldn't save: open this page signed in to Claude"); return false; }
+  if(!S.db){ toast("Couldn't save: open this page signed in to Claude","error"); return false; }
   try{ await S.db.doc("track/"+id).set(next); return true; }
-  catch(e){ toast(e&&e.code==="permission_denied"?"You have view-only access, ask Dieter for edit access":"Couldn't save, try again"); return false; }
+  catch(e){ toast(e&&e.code==="permission_denied"?"You have view-only access, ask Dieter for edit access":"Couldn't save, try again","error"); return false; }
 }
-async function copy(text){ try{ await navigator.clipboard.writeText(text); toast("Copied"); }catch(e){ toast("Select the text and copy it"); } }
+async function copy(text){ try{ await navigator.clipboard.writeText(text); toast("Copied","copy"); }catch(e){ toast("Select the text and copy it","error"); } }
 
 /* ---------- events ---------- */
 document.addEventListener("click", async e=>{
   const el=e.target;
-  const heart=el.closest("[data-heart]"); if(heart){ e.stopPropagation(); const id=heart.dataset.heart, st=statusOf(id); const rc=heart.getBoundingClientRect(); if(!SHORT.includes(st)) hearts(rc); else puff(rc); await saveTrack(id,{status:SHORT.includes(st)?"new":"interested"}); toast(SHORT.includes(statusOf(id))?"Added to your shortlist":"Removed from shortlist"); return; }
+  const heart=el.closest("[data-heart]"); if(heart){ e.stopPropagation(); const id=heart.dataset.heart, st=statusOf(id); const rc=heart.getBoundingClientRect(); if(!SHORT.includes(st)) hearts(rc); else puff(rc); await saveTrack(id,{status:SHORT.includes(st)?"new":"interested"}); toast(SHORT.includes(statusOf(id))?"Added to your shortlist":"Removed from shortlist",SHORT.includes(statusOf(id))?"like":"unlike"); return; }
   const nt=el.closest("[data-notestoggle]"); if(nt){ e.stopPropagation(); const id=nt.dataset.notestoggle; if(S.notesOpen.has(id)) S.notesOpen.delete(id); else S.notesOpen.add(id); renderList(); if(S.notesOpen.has(id)){ const ta=document.querySelector(`#view textarea[data-nin="${CSS.escape(id)}"]`); if(ta) ta.focus(); } return; }
-  const an=el.closest("[data-addnote]"); if(an){ e.stopPropagation(); const id=an.dataset.addnote; const box=an.closest(".notesBox"); const ta=box&&box.querySelector("textarea[data-nin]"); if(ta && ta.value.trim()){ const v=ta.value; ta.value=""; const ok=await addNote(id,v); if(ok){ noteAdded(an.getBoundingClientRect()); toast("Note saved for both of you"); } else ta.value=v; } else if(ta) ta.focus(); return; }
+  const an=el.closest("[data-addnote]"); if(an){ e.stopPropagation(); const id=an.dataset.addnote; const box=an.closest(".notesBox"); const ta=box&&box.querySelector("textarea[data-nin]"); if(ta && ta.value.trim()){ const v=ta.value; ta.value=""; const ok=await addNote(id,v); if(ok){ noteAdded(an.getBoundingClientRect()); toast("Note saved for both of you","note"); } else ta.value=v; } else if(ta) ta.focus(); return; }
   const dn=el.closest("[data-delnote]"); if(dn){ e.stopPropagation(); const key=dn.dataset.delnote; const [id,nid]=key.split("|");
     if(S.delArm!==key){ S.delArm=key; clearTimeout(S.delT); S.delT=setTimeout(()=>{ if(S.delArm===key){ S.delArm=null; rerenderNotes(); } },3500); rerenderNotes(); return; }
-    S.delArm=null; const item=dn.closest(".nItem"); const log=(tr(id).log||[]).filter(n=>n.id!==nid); noteDeleted(item?item.getBoundingClientRect():dn.getBoundingClientRect()); if(item && !RM){ item.classList.add("nGone"); await new Promise(r=>setTimeout(r,380)); } await saveTrack(id,{log}); toast("Note deleted"); return; }
+    S.delArm=null; const item=dn.closest(".nItem"); const log=(tr(id).log||[]).filter(n=>n.id!==nid); noteDeleted(item?item.getBoundingClientRect():dn.getBoundingClientRect()); if(item && !RM){ item.classList.add("nGone"); await new Promise(r=>setTimeout(r,380)); } await saveTrack(id,{log}); toast("Note deleted","del"); return; }
   const ed=el.closest("[data-editnote]"); if(ed){ e.stopPropagation(); S.editNote=ed.dataset.editnote; S.delArm=null; rerenderNotes(); const ta=document.querySelector(`textarea[data-nedit="${CSS.escape(S.editNote)}"]`); if(ta){ ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); } return; }
   if(el.closest("[data-canceledit]")){ e.stopPropagation(); S.editNote=null; rerenderNotes(); return; }
   const se=el.closest("[data-saveedit]"); if(se){ e.stopPropagation(); const key=se.dataset.saveedit; const [id,nid]=key.split("|"); const ta=se.closest(".nEdit").querySelector("textarea"); const v=(ta?ta.value:"").trim();
-    if(!v){ ta&&ta.focus(); toast("A note can't be empty. Use Delete to remove it."); return; }
+    if(!v){ ta&&ta.focus(); toast("A note can't be empty. Use Delete to remove it.","error"); return; }
     const log=(tr(id).log||[]).map(n=>n.id===nid ? Object.assign({},n,{text:v.slice(0,2000),edited:new Date().toISOString(),editedBy:S.me||null}) : n);
-    const rc=se.getBoundingClientRect(); S.editNote=null; S.freshNote=nid; S.freshKind="edit"; setTimeout(()=>{ if(S.freshNote===nid) S.freshNote=null; },1500); noteEdited(rc); await saveTrack(id,{log}); toast("Note updated"); return; }
+    const rc=se.getBoundingClientRect(); S.editNote=null; S.freshNote=nid; S.freshKind="edit"; setTimeout(()=>{ if(S.freshNote===nid) S.freshNote=null; },1500); noteEdited(rc); await saveTrack(id,{log}); toast("Note updated","edit"); return; }
   if(el.closest(".notesBox")) return;
   const op=el.closest("[data-open]"); if(op){ openDrawer(op.dataset.open); return; }
   const pop=el.closest("[data-pop]"); if(pop){ S.popId = S.popId===pop.dataset.pop ? null : pop.dataset.pop; renderMap(); return; }
   if(el.closest("[data-closepop]")){ S.popId=null; renderMap(); return; }
   const sd=el.closest("[data-side]"); if(sd){ S.sideId=sd.dataset.side; S.popId=null; renderMap(); renderSide(); return; }
   if(el.closest("[data-closeside]")){ S.sideId=null; renderSide(); renderMap(); return; }
-  const ss=el.closest("[data-sidestatus]"); if(ss && S.sideId){ sparkle(ss.getBoundingClientRect(), ss.dataset.sidestatus); await saveTrack(S.sideId,{status:ss.dataset.sidestatus}); toast("Marked "+STATUS_LABEL[ss.dataset.sidestatus].toLowerCase()); return; }
+  const ss=el.closest("[data-sidestatus]"); if(ss && S.sideId){ sparkle(ss.getBoundingClientRect(), ss.dataset.sidestatus); await saveTrack(S.sideId,{status:ss.dataset.sidestatus}); toast("Marked "+STATUS_LABEL[ss.dataset.sidestatus].toLowerCase(),ss.dataset.sidestatus); return; }
   const tab=el.closest("[data-tab]"); if(tab){ S.tab=tab.dataset.tab; store.set("tab",S.tab); render(); return; }
   const jump=el.closest("[data-jump]"); if(jump){ S.tab=jump.dataset.jump; render(); $("placesSec").scrollIntoView({behavior:"smooth",block:"start"}); return; }
   const tile=el.closest("[data-tile]"); if(tile){ S.tile = S.tile===tile.dataset.tile ? null : tile.dataset.tile; render(); return; }
   const c=el.closest(".card"); if(c && !el.closest("a,button")){ openDrawer(c.dataset.id); return; }
   if(el.id==="dClose"||el.closest("#dClose")||el.id==="scrim"){ closeDrawer(); return; }
-  const sp=el.closest("[data-status]"); if(sp && S.openId){ sparkle(sp.getBoundingClientRect(), sp.dataset.status); await saveTrack(S.openId,{status:sp.dataset.status}); toast("Marked "+STATUS_LABEL[sp.dataset.status].toLowerCase()); return; }
+  const sp=el.closest("[data-status]"); if(sp && S.openId){ sparkle(sp.getBoundingClientRect(), sp.dataset.status); await saveTrack(S.openId,{status:sp.dataset.status}); toast("Marked "+STATUS_LABEL[sp.dataset.status].toLowerCase(),sp.dataset.status); return; }
   const cp=el.closest("[data-copy]"); if(cp){ copy(cp.dataset.copy); return; }
   if(el.id==="dCopyMsg"){ copy($("dMsg").textContent); return; }
   if(el.id==="dSave" && S.openId){ const ok=await saveTrack(S.openId,{phone:$("dPhone").value.trim(),email:$("dEmail").value.trim(),note:$("dNote").value.trim(),viewing:$("dView").value.trim()}); if(ok&&$("dSaved")) $("dSaved").textContent="Saved for both of you"; return; }
@@ -890,8 +902,8 @@ const _render=render; render=function(){ _render(); countUps(); };
       const l=S.listings.get(id); S.flash.add(id); setTimeout(()=>{ S.flash.delete(id); },2600);
       const who=(S.names[t.updatedBy]&&S.names[t.updatedBy]!=="someone")?S.names[t.updatedBy]:"Your partner";
       const newNote=(t.log||[]).length>(o.log||[]).length ? (t.log||[])[(t.log||[]).length-1] : null;
-      if(l && newNote && t.status===o.status) toast(`${who} added a note on ${l.suburb}: “${String(newNote.text).slice(0,60)}${String(newNote.text).length>60?"…":""}”`);
-      else if(l) toast(t.status!==o.status ? `${who} marked ${l.type.toLowerCase()} in ${l.suburb} as ${STATUS_LABEL[t.status||"new"].toLowerCase()}` : `${who} updated ${l.type.toLowerCase()} in ${l.suburb}`);
+      if(l && newNote && t.status===o.status) toast(`${who} added a note on ${l.suburb}: “${String(newNote.text).slice(0,60)}${String(newNote.text).length>60?"…":""}”`,"partner");
+      else if(l) toast(t.status!==o.status ? `${who} marked ${l.type.toLowerCase()} in ${l.suburb} as ${STATUS_LABEL[t.status||"new"].toLowerCase()}` : `${who} updated ${l.type.toLowerCase()} in ${l.suburb}`,"partner");
       if(SHORT.includes(t.status) && !SHORT.includes(o.status)){ const m=document.querySelector(`.card[data-id="${CSS.escape(id)}"] .heart`); if(m) hearts(m.getBoundingClientRect()); } } } }
     const ids=[...new Set([...S.track.values()].flatMap(t=>[t.updatedBy,...(t.log||[]).map(n=>n.by)]).filter(Boolean))];
     if(user && ids.length){ try{ const ps=await user.profiles(ids); for(const id of ids) S.names[id]=(ps[id]&&ps[id].name)||"someone"; if(S.me) S.names[S.me]="you"; }catch(e){} }
