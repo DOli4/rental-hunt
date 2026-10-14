@@ -184,7 +184,12 @@ async function knownListing(env, id) {
 }
 
 async function postOp(req, env, cors) {
-  if (!env.PASSCODE || !(await sameSecret(header(req, "X-Passcode"), env.PASSCODE))) return json({ error: "wrong passcode" }, 401, cors);
+  // Optional Cloudflare rate-limit binding (see wrangler.toml); caps attempts per IP when present.
+  if (env.LIMITER && !(await env.LIMITER.limit({ key: req.headers.get("CF-Connecting-IP") || "?" })).success) return json({ error: "slow down" }, 429, cors);
+  if (!env.PASSCODE || !(await sameSecret(header(req, "X-Passcode"), env.PASSCODE))) {
+    await new Promise(res => setTimeout(res, 1000)); // makes guessing the passcode one by one slow
+    return json({ error: "wrong passcode" }, 401, cors);
+  }
   const raw = await req.text();
   if (raw.length > 10000) throw fail(413, "too much at once");
   let body;

@@ -37,9 +37,10 @@ partner and friends together with the link.
    | Text | `BRANCH` | `data` |
    | Text | `ALLOWED_ORIGIN` | `https://doli4.github.io` |
    | Secret | `GITHUB_TOKEN` | the `github_pat_…` key from step 1 |
-   | Secret | `PASSCODE` | a passcode you make up, e.g. three random words |
+   | Secret | `PASSCODE` | a passcode you make up: **four random words**, e.g. `velvet-kettle-orbit-lantern` |
 
    Click **Deploy** after adding them.
+   The helper waits a second after every wrong passcode, so a long passcode can't realistically be guessed.
 6. At the top of the worker page you'll see its address, like
    `https://rental-hunt.<your-name>.workers.dev`. Copy it.
 

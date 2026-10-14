@@ -11,6 +11,9 @@ Wierdapark) and Drive (Irene).
   Gumtree and new developments and commits the results to the `data` branch. The steps are in
   [ROUTINE.md](ROUTINE.md).
 
+> **Heads-up:** the passcode is saved in each visitor's browser for `doli4.github.io`, which this site
+> shares with Dieter's CV site. Fine for rental notes; give the site its own domain if that ever matters.
+>
 > **Heads-up:** this repo is public (GitHub Pages is only free on public repos), so anyone who finds it
 > can read the listings, notes and any phone numbers saved here. Don't put anything private in notes.
 
