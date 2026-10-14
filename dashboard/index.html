@@ -72,6 +72,17 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .mapLegend .sw{width:12px;height:12px;border-radius:50%;flex:none}
 .mapArea{cursor:grab;touch-action:none;overflow:hidden}
 .mapArea.dragging{cursor:grabbing}
+.mapSide{position:absolute;top:12px;right:12px;bottom:66px;width:min(350px,calc(100% - 24px));z-index:5;background:rgba(27,30,29,.96);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;cursor:default;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+.mapSide .sh{padding:14px 14px 10px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.mapSide .sh h3{font-size:16px;font-weight:400}
+.mapSide .sb{overflow-y:auto;padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px;font-size:13px}
+.mapSide .sf{padding:10px 14px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.mapSide .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mapSide .cell{background:var(--panel-2);border-radius:10px;padding:8px 10px}
+.mapSide .cell .k{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.mapSide .cell .v{font-size:15px}
+.mapSide .statusPick button{padding:4px 9px;font-size:11px}
+.mapArea.withSide .mapLegend{display:none}
 .pop{position:absolute;z-index:4;width:260px;background:rgba(31,34,33,.94);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}
 .pop .ph{display:flex;align-items:center;gap:8px;background:var(--panel-2);border-radius:999px;padding:6px 10px;font-size:12px}
 .pop .row2{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--panel-2);border-radius:999px;padding:6px 12px;font-size:12px}
@@ -189,6 +200,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
   .lower{grid-template-columns:1fr} .panel+.panel{border-left:0;border-top:1px solid var(--line)}
   .search input{width:120px}
   .mapLegend{left:10px;right:auto;top:10px;max-width:180px;font-size:10px}
+  .mapSide{top:auto;left:8px;right:8px;width:auto;bottom:58px;max-height:72%}
   .drawer{top:auto;height:90%;width:100%;border-left:0;border-top:1px solid var(--line);border-radius:18px 18px 0 0;padding-left:env(safe-area-inset-left,0px)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -228,6 +240,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
     <div class="mapArea" id="mapArea">
       <canvas id="map" aria-label="Map of places around TecWise and Drive"></canvas>
       <div id="overlay"></div>
+      <aside class="mapSide" id="mapSide" hidden aria-label="Selected place"></aside>
       <div class="mapLegend" aria-label="Map legend">
         <div class="li"><span class="sw" style="background:#6cb6ff"></span>Work · TecWise (Wierdapark)</div>
         <div class="li"><span class="sw" style="background:#f6c453"></span>Work · Drive (Irene)</div>
@@ -291,7 +304,7 @@ const ICON = {
   box:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12h8"/></svg>'
 };
 
-const S = { listings:new Map(), track:new Map(), meta:{}, settings:{}, tab:"places", tile:null, mapMode:"all", openId:null, popId:null, db:null, user:null, me:null, names:{}, loaded:false };
+const S = { listings:new Map(), track:new Map(), meta:{}, settings:{}, tab:"places", tile:null, mapMode:"all", openId:null, popId:null, sideId:null, db:null, user:null, me:null, names:{}, loaded:false };
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const rand = n => "R" + Number(n).toLocaleString("en-ZA").replace(/[, ]/g," ");
@@ -459,7 +472,7 @@ function renderMap(light){
   let html="";
   for(const a of anchors) html+=`<div class="anchor" style="left:${a.x}px;top:${a.y}px;--c:${a.a.color}"><div class="tag"><b>Work · ${a.a.name}</b><span>${a.a.sub}</span></div><div class="pinA"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></div></div>`;
   for(const p of pos){ const l=p.l, pc=petClass(l), st=statusOf(l.id), v=markerVisible(l); if(p.x<-20||p.x>w+20||p.y<-20||p.y>h+20) continue;
-    html+=`<button class="marker ${pc} ${SHORT.includes(st)?"saved":""} ${v?"":"dimmed"} ${isNew(l)?"fresh":""} ${S.popId===l.id?"on":""}" style="left:${p.x}px;top:${p.y}px" data-pop="${esc(l.id)}" aria-label="${esc(l.type+" in "+l.suburb+", "+rand(l.price))}" ${v?"":'tabindex="-1"'}>${ICON[pc]}</button>`; }
+    html+=`<button class="marker ${pc} ${SHORT.includes(st)?"saved":""} ${v?"":"dimmed"} ${isNew(l)?"fresh":""} ${S.popId===l.id||S.sideId===l.id?"on":""}" style="left:${p.x}px;top:${p.y}px" data-pop="${esc(l.id)}" aria-label="${esc(l.type+" in "+l.suburb+", "+rand(l.price))}" ${v?"":'tabindex="-1"'}>${ICON[pc]}</button>`; }
   if(S.popId && S.listings.get(S.popId)){ const p=pos.find(q=>q.l.id===S.popId); if(p) html+=popHtml(p,w,h); }
   $("overlay").innerHTML=html;
   $("dCount").textContent=`${vis.length} place${vis.length===1?"":"s"}`;
@@ -471,14 +484,14 @@ function popHtml(p,w,h){
     <div class="row2"><span>${rand(l.price)} pm</span><span class="muted">${l.beds} bed · ${l.baths} bath</span></div>
     <div class="row2"><span class="muted">TecWise ~${l.min_tecwise} min</span><span class="muted">Drive ~${l.min_drive} min</span></div>
     <div class="row2"><span class="muted">${esc(petLabel(l))}</span>${st!=="new"?`<span class="status st-${st}">${STATUS_LABEL[st]}</span>`:""}</div>
-    <div class="act"><button class="btn small primary" data-open="${esc(l.id)}">Open</button><button class="btn small" data-heart="${esc(l.id)}">${SHORT.includes(st)?"♥ Saved":"♡ Interested"}</button><button class="btn small" data-closepop>Close</button></div>
+    <div class="act"><button class="btn small primary" data-side="${esc(l.id)}" title="Show this place in a side panel">Expand ⤢</button><button class="btn small" data-heart="${esc(l.id)}">${SHORT.includes(st)?"♥ Saved":"♡ Interested"}</button><button class="btn small" data-closepop>Close</button></div>
   </div>`;
 }
 function zoomAt(f, cx, cy){ const nz=Math.max(.7,Math.min(6,VIEW.z*f)); const k=nz/VIEW.z; VIEW.tx=cx-(cx-VIEW.tx)*k; VIEW.ty=cy-(cy-VIEW.ty)*k; VIEW.z=nz; renderMap(); }
 function schedule(light){ cancelAnimationFrame(raf); raf=requestAnimationFrame(()=>renderMap(light)); }
 (function mapInput(){
   const area=$("mapArea"); const pts=new Map(); let pinch=null, moved=0;
-  area.addEventListener("pointerdown",e=>{ if(e.target.closest(".marker,.pop,.dock,.mapLegend")) return; area.setPointerCapture(e.pointerId); pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); moved=0;
+  area.addEventListener("pointerdown",e=>{ if(e.target.closest(".marker,.pop,.dock,.mapLegend,.mapSide")) return; area.setPointerCapture(e.pointerId); pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); moved=0;
     if(pts.size===2){ const [a,b]=[...pts.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y)}; } });
   area.addEventListener("pointermove",e=>{ if(!pts.has(e.pointerId)) return; const prev=pts.get(e.pointerId); const cur={x:e.clientX,y:e.clientY}; pts.set(e.pointerId,cur);
     if(pts.size===2 && pinch){ const [a,b]=[...pts.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y); const r=area.getBoundingClientRect(); const f=d/pinch.d; pinch.d=d;
@@ -486,7 +499,7 @@ function schedule(light){ cancelAnimationFrame(raf); raf=requestAnimationFrame((
     VIEW.tx+=cur.x-prev.x; VIEW.ty+=cur.y-prev.y; moved+=Math.abs(cur.x-prev.x)+Math.abs(cur.y-prev.y); if(moved>3){ area.classList.add("dragging"); schedule(true); } });
   const end=e=>{ if(!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if(pts.size<2) pinch=null; if(!pts.size){ area.classList.remove("dragging"); if(moved>3) renderMap(); } };
   area.addEventListener("pointerup",end); area.addEventListener("pointercancel",end);
-  area.addEventListener("wheel",e=>{ e.preventDefault(); const r=area.getBoundingClientRect(); zoomAt(e.deltaY<0?1.18:1/1.18, e.clientX-r.left, e.clientY-r.top); },{passive:false});
+  area.addEventListener("wheel",e=>{ if(e.target.closest(".mapSide,.pop")) return; e.preventDefault(); const r=area.getBoundingClientRect(); zoomAt(e.deltaY<0?1.18:1/1.18, e.clientX-r.left, e.clientY-r.top); },{passive:false});
 })();
 
 /* ---------- lower panels ---------- */
@@ -543,7 +556,33 @@ function renderList(){
 function renderHeader(){
   $("updated").innerHTML = S.meta.last_run ? `Data from the <span class="num">${esc(S.meta.last_run)}</span> search · 3 bed · 2 bath · ≤ R16 000 · within ~10 min of TecWise or Drive` : (S.loaded?"No search results yet":"Loading listings…");
 }
-function render(){ renderHeader(); renderCharts(); renderGauges(); renderMap(); renderBoard(); renderTiles(); renderTabs(); renderList(); if(S.openId) renderDrawer(); }
+function renderSide(){
+  const box=$("mapSide"), l=S.sideId && S.listings.get(S.sideId);
+  $("mapArea").classList.toggle("withSide", !!l);
+  if(!l){ box.hidden=true; box.innerHTML=""; return; }
+  const st=statusOf(l.id), t=tr(l.id), pc=petClass(l), phone=phoneOf(l), msg=fillTemplate(l);
+  const wa=intl(phone)?`https://wa.me/${intl(phone)}?text=${encodeURIComponent(msg)}`:"";
+  box.hidden=false;
+  box.innerHTML=`<div class="sh"><div style="min-width:0"><div class="label">${esc(l.source)}${l.tier==="nearby"?" · just outside":""}</div><h3>${esc(l.type)} · ${esc(l.suburb)}</h3><div class="muted" style="font-size:12px">${esc(l.address||"Address on request")}</div></div>
+      <button class="iconbtn" data-closeside aria-label="Close panel">×</button></div>
+    <div class="sb">
+      <div class="grid2">
+        <div class="cell"><div class="k">Rent</div><div class="v num">${rand(l.price)}</div></div>
+        <div class="cell"><div class="k">Size</div><div class="v num">${l.beds} bed · ${l.baths} bath</div></div>
+        <div class="cell"><div class="k">To TecWise</div><div class="v num" style="color:#6cb6ff">~${l.min_tecwise} min</div></div>
+        <div class="cell"><div class="k">To Drive</div><div class="v num" style="color:#f6c453">~${l.min_drive} min</div></div>
+      </div>
+      <div class="facts"><span class="fact ${pc}">${petLabel(l)}</span>${fibreOk(l)?`<span class="fact teal">Fibre</span>`:`<span class="fact ask">Fibre: ask</span>`}${secOk(l)?`<span class="fact">Security</span>`:`<span class="fact ask">Security: ask</span>`}${l.available?`<span class="fact">Available <b>${esc(l.available)}</b></span>`:""}${l.size_m2?`<span class="fact"><b>${l.size_m2}</b> m²</span>`:""}</div>
+      ${l.summary?`<div>${esc(l.summary)}</div>`:`<div class="muted">No description saved yet. Open the listing for the full ad.</div>`}
+      ${l.note?`<div class="banner">${esc(l.note)}</div>`:""}
+      <div><div class="label" style="margin-bottom:6px">Where we are with it</div><div class="statusPick">${STATUSES.map(([k,v])=>`<button data-sidestatus="${k}" aria-pressed="${st===k}">${v}</button>`).join("")}</div></div>
+      <div><div class="label" style="margin-bottom:6px">Contact</div><div>${esc(l.agency||"Agency not shown")}${l.agent?` · ${esc(l.agent)}`:""}</div>${phone?`<div class="num" style="margin-top:2px">${esc(prettyPhone(phone))}</div>`:`<div class="muted" style="font-size:12px;margin-top:2px">No number yet. Open the listing, tap "Show number", then add it under Full details.</div>`}</div>
+      ${t.note?`<div><div class="label" style="margin-bottom:6px">Our notes</div><div class="note">${esc(t.note)}</div></div>`:""}
+      <div class="row"><a class="btn small" href="${esc(l.url)}" target="_blank" rel="noopener">Open listing</a>${wa?`<a class="btn small wa" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>`:""}<a class="btn small" href="${esc(l.maps_url)}" target="_blank" rel="noopener">Google Maps</a></div>
+    </div>
+    <div class="sf"><button class="btn primary" data-open="${esc(l.id)}">Full details ⤢</button><button class="btn" data-heart="${esc(l.id)}">${SHORT.includes(st)?"♥ Saved":"♡ Interested"}</button></div>`;
+}
+function render(){ renderHeader(); renderCharts(); renderGauges(); renderMap(); renderBoard(); renderTiles(); renderTabs(); renderList(); renderSide(); if(S.openId) renderDrawer(); }
 
 /* ---------- drawer ---------- */
 function fillTemplate(l){
@@ -621,6 +660,9 @@ document.addEventListener("click", async e=>{
   const op=el.closest("[data-open]"); if(op){ openDrawer(op.dataset.open); return; }
   const pop=el.closest("[data-pop]"); if(pop){ S.popId = S.popId===pop.dataset.pop ? null : pop.dataset.pop; renderMap(); return; }
   if(el.closest("[data-closepop]")){ S.popId=null; renderMap(); return; }
+  const sd=el.closest("[data-side]"); if(sd){ S.sideId=sd.dataset.side; S.popId=null; renderMap(); renderSide(); return; }
+  if(el.closest("[data-closeside]")){ S.sideId=null; renderSide(); renderMap(); return; }
+  const ss=el.closest("[data-sidestatus]"); if(ss && S.sideId){ await saveTrack(S.sideId,{status:ss.dataset.sidestatus}); toast("Marked "+STATUS_LABEL[ss.dataset.sidestatus].toLowerCase()); return; }
   const tab=el.closest("[data-tab]"); if(tab){ S.tab=tab.dataset.tab; store.set("tab",S.tab); render(); return; }
   const jump=el.closest("[data-jump]"); if(jump){ S.tab=jump.dataset.jump; render(); $("placesSec").scrollIntoView({behavior:"smooth",block:"start"}); return; }
   const tile=el.closest("[data-tile]"); if(tile){ S.tile = S.tile===tile.dataset.tile ? null : tile.dataset.tile; render(); return; }
@@ -634,7 +676,7 @@ document.addEventListener("click", async e=>{
   const zb=el.closest("#zIn,#zOut,#zReset"); if(zb){ const a=$("mapArea"); if(zb.id==="zReset"){ VIEW.z=1; VIEW.tx=0; VIEW.ty=0; renderMap(); } else zoomAt(zb.id==="zIn"?1.35:1/1.35, a.clientWidth/2, a.clientHeight/2); return; }
   const dk=el.closest("#dAll,#dOk,#dSaved"); if(dk){ S.mapMode={dAll:"all",dOk:"ok",dSaved:"saved"}[dk.id]; ["dAll","dOk","dSaved"].forEach(i=>$(i).setAttribute("aria-pressed",String(i===dk.id))); renderMap(); return; }
 });
-document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ if(S.openId) closeDrawer(); else if(S.popId){ S.popId=null; renderMap(); } } if(e.key==="Enter" && e.target.classList && e.target.classList.contains("card")) openDrawer(e.target.dataset.id); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ if(S.openId) closeDrawer(); else if(S.popId){ S.popId=null; renderMap(); } else if(S.sideId){ S.sideId=null; renderSide(); renderMap(); } } if(e.key==="Enter" && e.target.classList && e.target.classList.contains("card")) openDrawer(e.target.dataset.id); });
 ["fArea","fMax","fPets","sort"].forEach(id=>$(id).addEventListener("change",()=>{ store.set(id,$(id).value); render(); }));
 $("q").addEventListener("input",()=>render());
 let rz; window.addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(renderMap,120); });
