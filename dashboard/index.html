@@ -11,7 +11,7 @@
   --fg:#e9eeeb; --muted:#8b9490; --dim:#5d6663;
   --teal:#BC6CFF; --teal-deep:#8a4fd6; --glow:rgba(188,108,255,.22); --violet:#00F0FF; --pet:#34d399; --fuchsia:#FF5CA8; --cyan:#00F0FF; --peach:#FFB86B; --night:#0B0F2B;
   --grad:linear-gradient(135deg,#00F0FF 0%,#BC6CFF 50%,#FF5CA8 100%);
-  --green:#00F0FF; --orange:#FFB86B; --red:#ff4d5e; --white:#f4f7f5;
+  --green:#00F0FF; --orange:#FFB86B; --purple:#9D6BFF; --red:#ff4d5e; --white:#f4f7f5;
   --f:"Lexend","Segoe UI",system-ui,sans-serif;
   --r:16px;
 }
@@ -59,7 +59,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
   box-shadow:0 0 0 4px rgba(0,0,0,.25),0 0 18px rgba(0,0,0,.4);transition:transform .15s}
 .marker:hover,.marker.on{transform:translate(-50%,-50%) scale(1.18);z-index:3}
 .marker.ok{background:var(--pet);color:#06281c;box-shadow:0 0 0 4px rgba(0,0,0,.25),0 0 16px rgba(52,211,153,.45)}
-.marker.ask{background:var(--orange);color:#2b1606}
+.marker.ask{background:var(--purple);color:#170a33}
 .marker.no{background:transparent;box-shadow:none}
 .marker.saved::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--white)}
 .marker.dimmed{opacity:.28}
@@ -143,6 +143,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .fact.ok{color:var(--pet);border-color:color-mix(in srgb,var(--pet) 45%,var(--line))}
 .fact.no{color:var(--red);border-color:color-mix(in srgb,var(--red) 35%,var(--line))}
 .fact.ask{color:var(--orange);border-color:color-mix(in srgb,var(--orange) 35%,var(--line))}
+.fact.pet-ask{color:var(--purple);border-color:color-mix(in srgb,var(--purple) 40%,var(--line))}
 .fact.teal{color:#7ff7ff;border-color:color-mix(in srgb,var(--violet) 40%,var(--line))}
 .card .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:10px;margin-top:auto}
 .src{font-size:11px;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -222,7 +223,6 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 @keyframes radar{0%{transform:translate(-50%,-50%) scale(1);opacity:.85}100%{transform:translate(-50%,-50%) scale(9);opacity:0}}
 .mapArea::after{content:"";position:absolute;top:0;bottom:0;left:0;width:160px;transform:translateX(-160px);background:linear-gradient(90deg,transparent,rgba(188,108,255,.07),rgba(0,240,255,.05),transparent);animation:sweep 9s linear infinite;pointer-events:none;z-index:1}
 @keyframes sweep{to{transform:translateX(calc(100vw))}}
-#spark{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
 .marker{z-index:2}
 .anim .arc{animation:arcIn 1.2s cubic-bezier(.2,.8,.2,1) both}
 @keyframes arcIn{from{stroke-dasharray:0 999}}
@@ -279,14 +279,13 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 
     <div class="mapArea" id="mapArea">
       <canvas id="map" aria-label="Map of places around TecWise and Drive"></canvas>
-      <canvas id="spark" aria-hidden="true"></canvas>
       <div id="overlay"></div>
       <aside class="mapSide" id="mapSide" hidden aria-label="Selected place"></aside>
       <div class="mapLegend" aria-label="Map legend">
         <div class="li"><span class="sw" style="background:#00F0FF"></span>Work · TecWise (Wierdapark)</div>
         <div class="li"><span class="sw" style="background:#FF5CA8"></span>Work · Drive (Irene)</div>
         <div class="li"><span class="sw" style="background:var(--pet)"></span>Pets OK</div>
-        <div class="li"><span class="sw" style="background:var(--orange)"></span>Pets: ask</div>
+        <div class="li"><span class="sw" style="background:var(--purple)"></span>Pets: ask</div>
         <div class="li"><span class="sw" style="background:var(--red)"></span>No pets / no cats</div>
         <div class="li"><span class="sw" style="border:2px solid var(--white)"></span>On our shortlist</div>
         <div class="muted">Dashed circles ≈ 10 min drive. Drag to move, scroll or pinch to zoom.</div>
@@ -560,7 +559,7 @@ function renderTiles(){
   const all=activeAll(), n=all.length;
   const t=[["ok","Pet friendly","var(--pet)",ICON.ok,all.filter(l=>petClass(l)==="ok").length],
            ["no","No cats / no pets","var(--red)",'<svg width="14" height="14" viewBox="0 0 26 26"><path d="M13 3 24 22H2z" fill="#e5534b"/></svg>',all.filter(l=>petClass(l)==="no").length],
-           ["ask","Pets: ask agent","var(--orange)",ICON.ask,all.filter(l=>petClass(l)==="ask").length],
+           ["ask","Pets: ask agent","var(--purple)",ICON.ask,all.filter(l=>petClass(l)==="ask").length],
            ["fibre","Fibre mentioned","var(--muted)",ICON.box,all.filter(fibreOk).length]];
   $("tiles").innerHTML=t.map(([k,lab,c,ic,v])=>`<button class="tile" data-tile="${k}" aria-pressed="${S.tile===k}"><span class="t"><span style="color:${c};display:grid;place-items:center">${ic}</span>${lab}</span><span><span class="s">Places</span><br><span class="big num"><span data-count="t-${k}" data-to="${v}">${v}</span><small> / ${n}</small></span></span></button>`).join("");
 }
@@ -574,7 +573,7 @@ function renderTabs(){
 }
 function card(l){
   const st=statusOf(l.id), t=tr(l.id), pc=petClass(l), fav=SHORT.includes(st);
-  const facts=[`<span class="fact ${pc}">${petLabel(l)}</span>`];
+  const facts=[`<span class="fact ${pc==="ask"?"pet-ask":pc}">${petLabel(l)}</span>`];
   if(fibreOk(l)) facts.push(`<span class="fact teal">Fibre</span>`);
   if(secOk(l)) facts.push(`<span class="fact">Security</span>`);
   if(l.available) facts.push(`<span class="fact">Available <b>${esc(l.available)}</b></span>`);
@@ -617,7 +616,7 @@ function renderSide(){
         <div class="cell"><div class="k">To TecWise</div><div class="v num" style="color:#00F0FF">~${l.min_tecwise} min</div></div>
         <div class="cell"><div class="k">To Drive</div><div class="v num" style="color:#FF5CA8">~${l.min_drive} min</div></div>
       </div>
-      <div class="facts"><span class="fact ${pc}">${petLabel(l)}</span>${fibreOk(l)?`<span class="fact teal">Fibre</span>`:`<span class="fact ask">Fibre: ask</span>`}${secOk(l)?`<span class="fact">Security</span>`:`<span class="fact ask">Security: ask</span>`}${l.available?`<span class="fact">Available <b>${esc(l.available)}</b></span>`:""}${l.size_m2?`<span class="fact"><b>${l.size_m2}</b> m²</span>`:""}</div>
+      <div class="facts"><span class="fact ${pc==="ask"?"pet-ask":pc}">${petLabel(l)}</span>${fibreOk(l)?`<span class="fact teal">Fibre</span>`:`<span class="fact ask">Fibre: ask</span>`}${secOk(l)?`<span class="fact">Security</span>`:`<span class="fact ask">Security: ask</span>`}${l.available?`<span class="fact">Available <b>${esc(l.available)}</b></span>`:""}${l.size_m2?`<span class="fact"><b>${l.size_m2}</b> m²</span>`:""}</div>
       ${l.summary?`<div>${esc(l.summary)}</div>`:`<div class="muted">No description saved yet. Open the listing for the full ad.</div>`}
       ${l.note?`<div class="banner">${esc(l.note)}</div>`:""}
       <div><div class="label" style="margin-bottom:6px">Where we are with it</div><div class="statusPick">${STATUSES.map(([k,v])=>`<button data-sidestatus="${k}" aria-pressed="${st===k}">${v}</button>`).join("")}</div></div>
@@ -669,7 +668,7 @@ function renderDrawer(first){
      <div class="sec"><div class="label">Message for this place</div><div class="msg" id="dMsg">${esc(msg)}</div>
        <div class="row"><button class="btn" id="dCopyMsg">Copy message</button>${wa?`<a class="btn wa" href="${wa}" target="_blank" rel="noopener">Send on WhatsApp</a>`:""}</div></div>
      <div class="sec"><div class="label">Details</div>
-       <div class="facts"><span class="fact ${pc}">${petLabel(l)}</span>${fibreOk(l)?`<span class="fact teal">Fibre ${esc(l.fibre)}</span>`:`<span class="fact ask">Fibre: ask</span>`}${secOk(l)?`<span class="fact">Security</span>`:`<span class="fact ask">Security: ask</span>`}</div>
+       <div class="facts"><span class="fact ${pc==="ask"?"pet-ask":pc}">${petLabel(l)}</span>${fibreOk(l)?`<span class="fact teal">Fibre ${esc(l.fibre)}</span>`:`<span class="fact ask">Fibre: ask</span>`}${secOk(l)?`<span class="fact">Security</span>`:`<span class="fact ask">Security: ask</span>`}</div>
        <dl class="kv"><dt>Size</dt><dd><span class="num">${l.beds}</span> bed · <span class="num">${l.baths}</span> bath${l.size_m2?` · <span class="num">${l.size_m2}</span> m²`:""}</dd>
          <dt>Available</dt><dd>${esc(l.available||"Ask")}</dd><dt>Security</dt><dd>${esc(l.security||"Not described")}</dd><dt>Pets</dt><dd>${esc(l.pets||"unknown")}</dd>
          <dt>Drive time</dt><dd>TecWise ~<span class="num">${l.min_tecwise}</span> min · Drive ~<span class="num">${l.min_drive}</span> min <span class="muted">(estimate)</span></dd>
@@ -751,14 +750,6 @@ setInterval(updSync, 10000);
 function countUps(){ document.querySelectorAll("[data-count]").forEach(el=>{ const k=el.dataset.count, to=+el.dataset.to, from=S.prevNums[k]; S.prevNums[k]=to; if(RM || from===undefined&&!S.loaded || from===to) return; const f=from===undefined?0:from, t0=performance.now(), dur=700;
   (function step(t){ const p=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-p,3); el.textContent=Math.round(f+(to-f)*e); if(p<1) requestAnimationFrame(step); })(t0); }); }
 const _render=render; render=function(){ _render(); countUps(); };
-// map sparkles
-(function sparkLoop(){ const cv=$("spark"); if(!cv||RM) return; const ctx=cv.getContext("2d"); let parts=[], last=0;
-  function frame(t){ requestAnimationFrame(frame); if(document.hidden || t-last<33) return; last=t;
-    const w=cv.clientWidth, h=cv.clientHeight, dpr=Math.min(2,window.devicePixelRatio||1); if(cv.width!==w*dpr||cv.height!==h*dpr){ cv.width=w*dpr; cv.height=h*dpr; } ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
-    if(HOT.length && parts.length<46){ for(let k=0;k<2;k++){ const i=(Math.random()*HOT.length/2|0)*2; parts.push({x:HOT[i],y:HOT[i+1],b:t,l:700+Math.random()*900,c:PAL[Math.random()*3|0]}); } }
-    parts=parts.filter(p=>t-p.b<p.l); for(const p of parts){ const k=(t-p.b)/p.l, a=Math.sin(k*Math.PI); const r=1.5+a*2.6; const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*3); g.addColorStop(0,p.c); g.addColorStop(1,"transparent"); ctx.globalAlpha=a*.9; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,r*3,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=a; ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(p.x,p.y,r*.45,0,Math.PI*2); ctx.fill(); } ctx.globalAlpha=1; }
-  requestAnimationFrame(frame); })();
-
 /* ---------- live data ---------- */
 (async function boot(){
   const use = window.claude && window.claude.use ? n => window.claude.use(n) : async () => null;
