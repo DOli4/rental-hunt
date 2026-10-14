@@ -9,9 +9,9 @@
   color-scheme:dark;
   --bg:#181a1a; --panel:#1f2221; --panel-2:#252928; --line:#2f3433; --dot:#3a403e;
   --fg:#e9eeeb; --muted:#8b9490; --dim:#5d6663;
-  --teal:#4f8cff; --teal-deep:#3a5fd6; --glow:rgba(79,140,255,.22); --violet:#a855f7; --pet:#34d399; --fuchsia:#e879f9; --cyan:#22d3ee;
-  --grad:linear-gradient(135deg,#4f8cff 0%,#7c5cff 55%,#a855f7 100%);
-  --green:#8b7bff; --orange:#f5a524; --red:#ef4444; --white:#f4f7f5;
+  --teal:#BC6CFF; --teal-deep:#8a4fd6; --glow:rgba(188,108,255,.22); --violet:#00F0FF; --pet:#34d399; --fuchsia:#FF5CA8; --cyan:#00F0FF; --peach:#FFB86B; --night:#0B0F2B;
+  --grad:linear-gradient(135deg,#00F0FF 0%,#BC6CFF 50%,#FF5CA8 100%);
+  --green:#00F0FF; --orange:#FFB86B; --red:#ff4d5e; --white:#f4f7f5;
   --f:"Lexend","Segoe UI",system-ui,sans-serif;
   --r:16px;
 }
@@ -27,7 +27,7 @@ button{cursor:pointer}
 h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 
 /* shell */
-.shell{background:var(--panel);border:1px solid color-mix(in srgb,var(--teal) 22%,var(--line));border-radius:22px;margin-block:16px;overflow:hidden;box-shadow:0 0 0 1px rgba(79,140,255,.06),0 30px 80px rgba(79,140,255,.10),inset 0 1px 0 rgba(255,255,255,.03)}
+.shell{background:var(--panel);border:1px solid color-mix(in srgb,var(--teal) 22%,var(--line));border-radius:22px;margin-block:16px;overflow:hidden;box-shadow:0 0 0 1px rgba(188,108,255,.06),0 30px 80px rgba(188,108,255,.10),inset 0 1px 0 rgba(255,255,255,.03)}
 .topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line)}
 .brand{font-weight:500;letter-spacing:-.02em;font-size:16px;margin-right:auto}
 .brand b{color:var(--teal);font-weight:500}
@@ -49,9 +49,9 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .mini .ends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
 .ctrls{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
 .pill{background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;color:var(--fg)}
-.pill[aria-pressed="true"]{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 0 16px rgba(79,140,255,.35)}
+.pill[aria-pressed="true"]{background:var(--grad);color:var(--night);border-color:transparent;box-shadow:0 0 16px rgba(188,108,255,.35)}
 .iconbtn{width:32px;height:32px;border-radius:50%;background:var(--panel-2);border:1px solid var(--line);display:grid;place-items:center;padding:0}
-.iconbtn[aria-pressed="true"]{background:var(--grad);color:#fff;border-color:transparent}
+.iconbtn[aria-pressed="true"]{background:var(--grad);color:var(--night);border-color:transparent}
 
 .mapArea{position:relative;min-height:560px}
 .mapArea canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -130,7 +130,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .brand b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;cursor:pointer;position:relative;transition:border-color .15s}
-.card:hover{border-color:var(--teal-deep);box-shadow:0 0 0 1px rgba(79,140,255,.25),0 12px 34px rgba(79,140,255,.14)}
+.card:hover{border-color:var(--teal-deep);box-shadow:0 0 0 1px rgba(188,108,255,.25),0 12px 34px rgba(188,108,255,.14)}
 .card.gone{opacity:.5}
 .card .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .card h3{font-size:15px;font-weight:400}
@@ -143,18 +143,18 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .fact.ok{color:var(--pet);border-color:color-mix(in srgb,var(--pet) 45%,var(--line))}
 .fact.no{color:var(--red);border-color:color-mix(in srgb,var(--red) 35%,var(--line))}
 .fact.ask{color:var(--orange);border-color:color-mix(in srgb,var(--orange) 35%,var(--line))}
-.fact.teal{color:#c99bff;border-color:color-mix(in srgb,var(--violet) 45%,var(--line))}
+.fact.teal{color:#7ff7ff;border-color:color-mix(in srgb,var(--violet) 40%,var(--line))}
 .card .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:10px;margin-top:auto}
 .src{font-size:11px;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .heart{border:1px solid var(--line);background:var(--panel-2);border-radius:999px;padding:5px 12px;font-size:12px;white-space:nowrap}
-.heart[aria-pressed="true"]{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 0 18px rgba(124,92,255,.45)}
+.heart[aria-pressed="true"]{background:var(--grad);border-color:transparent;color:var(--night);box-shadow:0 0 18px rgba(255,92,168,.45)}
 .status{font-size:10px;text-transform:uppercase;letter-spacing:.08em;border-radius:999px;padding:3px 8px;font-weight:500}
-.st-interested{background:color-mix(in srgb,var(--teal) 20%,transparent);color:#8fb4ff}
-.st-contacted{background:color-mix(in srgb,var(--violet) 20%,transparent);color:#c99bff}
+.st-interested{background:color-mix(in srgb,var(--teal) 22%,transparent);color:#d9a8ff}
+.st-contacted{background:color-mix(in srgb,var(--violet) 16%,transparent);color:#7ff7ff}
 .st-viewing{background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange)}
 .st-applied{background:color-mix(in srgb,var(--white) 15%,transparent);color:var(--white)}
 .st-no{background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)}
-.newFlag{position:absolute;top:-8px;left:14px;background:var(--grad);color:#fff;font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:2px 8px}
+.newFlag{position:absolute;top:-8px;left:14px;background:var(--grad);color:var(--night);font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:2px 8px}
 .note{font-size:12px;background:var(--panel-2);border-radius:10px;padding:7px 10px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--fg)}
 .empty{border:1px dashed var(--line);border-radius:var(--r);padding:30px;text-align:center;color:var(--muted)}
 .empty h3{color:var(--fg);margin-bottom:6px;font-size:16px}
@@ -173,14 +173,14 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .kv dt{color:var(--muted)} .kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .statusPick{display:flex;flex-wrap:wrap;gap:6px}
 .statusPick button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 12px;font-size:12px}
-.statusPick button[aria-pressed="true"]{background:var(--grad);color:#fff;border-color:transparent}
+.statusPick button[aria-pressed="true"]{background:var(--grad);color:var(--night);border-color:transparent}
 .field{display:flex;flex-direction:column;gap:5px}
 .field input,.field textarea{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%;font-size:13px}
 .field textarea{min-height:84px;resize:vertical}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 14px;font-size:13px;text-decoration:none;color:var(--fg)}
-.btn.primary{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 6px 22px rgba(79,140,255,.3)}
-.btn.wa{background:var(--grad);border-color:transparent;color:#fff}
+.btn.primary{background:var(--grad);border-color:transparent;color:var(--night);font-weight:500;box-shadow:0 6px 22px rgba(188,108,255,.3)}
+.btn.wa{background:var(--grad);border-color:transparent;color:var(--night)}
 .btn[aria-disabled="true"]{opacity:.35;pointer-events:none}
 .btn.small{padding:3px 10px;font-size:11px}
 .msg{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:13px;white-space:pre-wrap}
@@ -188,7 +188,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .x{width:34px;height:34px;flex:none;font-size:18px;line-height:1}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--white);color:#111;padding:8px 16px;border-radius:999px;font-size:13px;z-index:30}
 
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(124,92,255,.55)}100%{box-shadow:0 0 0 14px rgba(124,92,255,0)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,92,168,.55)}100%{box-shadow:0 0 0 14px rgba(255,92,168,0)}}
 .marker.fresh{animation:pulse 2.2s ease-out infinite}
 
 @media (max-width:1100px){
@@ -245,8 +245,8 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
       <div id="overlay"></div>
       <aside class="mapSide" id="mapSide" hidden aria-label="Selected place"></aside>
       <div class="mapLegend" aria-label="Map legend">
-        <div class="li"><span class="sw" style="background:#22d3ee"></span>Work · TecWise (Wierdapark)</div>
-        <div class="li"><span class="sw" style="background:#e879f9"></span>Work · Drive (Irene)</div>
+        <div class="li"><span class="sw" style="background:#00F0FF"></span>Work · TecWise (Wierdapark)</div>
+        <div class="li"><span class="sw" style="background:#FF5CA8"></span>Work · Drive (Irene)</div>
         <div class="li"><span class="sw" style="background:var(--pet)"></span>Pets OK</div>
         <div class="li"><span class="sw" style="background:var(--orange)"></span>Pets: ask</div>
         <div class="li"><span class="sw" style="background:var(--red)"></span>No pets / no cats</div>
@@ -295,7 +295,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const ANCHORS = { tecwise:{name:"TecWise", sub:"Estcourt Ave, Wierdapark", lat:-25.8722, lng:28.1590, color:"#22d3ee"}, drive:{name:"Drive", sub:"Guernsey Business Park, Irene", lat:-25.8538, lng:28.2506, color:"#e879f9"} };
+const ANCHORS = { tecwise:{name:"TecWise", sub:"Estcourt Ave, Wierdapark", lat:-25.8722, lng:28.1590, color:"#00F0FF"}, drive:{name:"Drive", sub:"Guernsey Business Park, Irene", lat:-25.8538, lng:28.2506, color:"#FF5CA8"} };
 const STATUSES = [["new","New"],["interested","Interested"],["contacted","Contacted"],["viewing","Viewing booked"],["applied","Applied"],["no","Not for us"]];
 const STATUS_LABEL = Object.fromEntries(STATUSES);
 const SHORT = ["interested","contacted","viewing","applied"];
@@ -369,15 +369,15 @@ function renderCharts(){
   const mx=Math.max(...b,1), W=210, H=60, base=46, bw=W/n;
   const minP=Math.min(...all.map(l=>l.price)), maxP=Math.max(...all.map(l=>l.price));
   let s=`<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--line)"/>`;
-  b.forEach((v,i)=>{ const h=v/mx*36; const x=i*bw+bw/2; for(let k=0;k<3;k++){ s+=`<line x1="${x-2+k*2}" y1="${base}" x2="${x-2+k*2}" y2="${base-h*(k===1?1:.55)}" stroke="${k===1?"#8fb4ff":"#4b4f7a"}" stroke-width="1"/>`; } });
+  b.forEach((v,i)=>{ const h=v/mx*36; const x=i*bw+bw/2; for(let k=0;k<3;k++){ s+=`<line x1="${x-2+k*2}" y1="${base}" x2="${x-2+k*2}" y2="${base-h*(k===1?1:.55)}" stroke="${k===1?"#00F0FF":"#5b4a7e"}" stroke-width="1"/>`; } });
   const px=p=>((p-lo)/(hi-lo))*W;
   [minP,maxP].forEach(p=>{ s+=`<line x1="${px(p)}" y1="6" x2="${px(p)}" y2="${base}" stroke="var(--muted)" stroke-dasharray="1 2"/><circle cx="${px(p)}" cy="6" r="2.2" fill="var(--white)"/><circle cx="${px(p)}" cy="${base}" r="2.2" fill="var(--white)"/>`; });
   $("chPrice").innerHTML=s; $("chPriceEnds").innerHTML=`<span>${rand(minP)}</span><span>${rand(maxP)}</span>`;
   // minutes to Drive: peaks
   const dl=3, dh=25, m=dh-dl; const c=Array(m+1).fill(0); all.forEach(l=>c[Math.min(m,Math.max(0,Math.min(l.min_drive,l.min_tecwise)-dl))]++);
   const cm=Math.max(...c,1), sw=W/(m+1); let t=`<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--line)" stroke-dasharray="1 3"/>`;
-  c.forEach((v,i)=>{ if(!v) return; const x=i*sw+sw/2, h=6+v/cm*30; t+=`<path d="M${x-sw*.7} ${base} L${x} ${base-h} L${x+sw*.7} ${base}Z" fill="${i<=10-dl?"#4f8cff":"#a855f7"}" fill-opacity="${i<=10-dl?.9:.55}"/>`; });
-  const t10=(10-dl)*sw+sw/2; t+=`<line x1="${t10}" y1="4" x2="${t10}" y2="${base}" stroke="var(--teal)" stroke-dasharray="1 2"/><text x="${t10+4}" y="10" font-size="8" fill="#8fb4ff" font-family="Lexend">10 min</text>`;
+  c.forEach((v,i)=>{ if(!v) return; const x=i*sw+sw/2, h=6+v/cm*30; t+=`<path d="M${x-sw*.7} ${base} L${x} ${base-h} L${x+sw*.7} ${base}Z" fill="${i<=10-dl?"#00F0FF":"#BC6CFF"}" fill-opacity="${i<=10-dl?.9:.55}"/>`; });
+  const t10=(10-dl)*sw+sw/2; t+=`<line x1="${t10}" y1="4" x2="${t10}" y2="${base}" stroke="#00F0FF" stroke-dasharray="1 2"/><text x="${t10+4}" y="10" font-size="8" fill="#00F0FF" font-family="Lexend">10 min</text>`;
   $("chDrive").innerHTML=t; const md=all.map(l=>Math.min(l.min_drive,l.min_tecwise)); $("chDriveEnds").innerHTML=`<span>${Math.min(...md)} min</span><span>${Math.max(...md)} min</span>`;
 }
 
@@ -402,7 +402,7 @@ function renderGauges(){
   const pets=all.filter(l=>petClass(l)==="ok").length;
   const core=all.filter(l=>l.tier==="core").length;
   const tabs=$("gauges").querySelector(".viewtabs").outerHTML;
-  $("gauges").innerHTML = tabs + gauge("On our shortlist", short, n, ["#4f8cff","#a855f7"]) + gauge("Pet friendly", pets, n, ["#22d3ee","#4f8cff"]) + gauge("Within 10 min", core, n, ["#a855f7","#e879f9"]);
+  $("gauges").innerHTML = tabs + gauge("On our shortlist", short, n, ["#00F0FF","#BC6CFF"]) + gauge("Pet friendly", pets, n, ["#34d399","#00F0FF"]) + gauge("Within 10 min", core, n, ["#BC6CFF","#FF5CA8"]);
   $("gauges").querySelectorAll("[data-jump]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.jump===(S.tab==="shortlist"?"shortlist":"places"))));
 }
 
@@ -444,8 +444,8 @@ function renderMap(light){
       const t=Math.min(1.4, v*.55 + z + (nz-.45)*.3);
       let r, col;
       if(t<.18){ col=`rgba(90,100,96,${.2+nz*.18})`; r=.7; }
-      else if(t<.75){ const a=(t-.18)/.57; col=`rgba(${Math.round(52+a*27)},${Math.round(84+a*56)},${Math.round(190+a*65)},${.4+a*.5})`; r=.9+a*1.1; }
-      else { const a=Math.min(1,(t-.75)/.6); col=`rgba(${Math.round(124+a*108)},${Math.round(92+a*29)},${Math.round(255-a*6)},.95)`; r=2+a*.6; }
+      else if(t<.75){ const a=(t-.18)/.57; col=`rgba(${Math.round(90+a*98)},${Math.round(60+a*48)},${Math.round(160+a*95)},${.4+a*.5})`; r=.9+a*1.1; }
+      else { const a=Math.min(1,(t-.75)/.6); col=`rgba(${Math.round(188+a*67)},${Math.round(108-a*16)},${Math.round(255-a*87)},.95)`; r=2+a*.6; }
       ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
     } }
   }
@@ -572,8 +572,8 @@ function renderSide(){
       <div class="grid2">
         <div class="cell"><div class="k">Rent</div><div class="v num">${rand(l.price)}</div></div>
         <div class="cell"><div class="k">Size</div><div class="v num">${l.beds} bed · ${l.baths} bath</div></div>
-        <div class="cell"><div class="k">To TecWise</div><div class="v num" style="color:#22d3ee">~${l.min_tecwise} min</div></div>
-        <div class="cell"><div class="k">To Drive</div><div class="v num" style="color:#e879f9">~${l.min_drive} min</div></div>
+        <div class="cell"><div class="k">To TecWise</div><div class="v num" style="color:#00F0FF">~${l.min_tecwise} min</div></div>
+        <div class="cell"><div class="k">To Drive</div><div class="v num" style="color:#FF5CA8">~${l.min_drive} min</div></div>
       </div>
       <div class="facts"><span class="fact ${pc}">${petLabel(l)}</span>${fibreOk(l)?`<span class="fact teal">Fibre</span>`:`<span class="fact ask">Fibre: ask</span>`}${secOk(l)?`<span class="fact">Security</span>`:`<span class="fact ask">Security: ask</span>`}${l.available?`<span class="fact">Available <b>${esc(l.available)}</b></span>`:""}${l.size_m2?`<span class="fact"><b>${l.size_m2}</b> m²</span>`:""}</div>
       ${l.summary?`<div>${esc(l.summary)}</div>`:`<div class="muted">No description saved yet. Open the listing for the full ad.</div>`}
