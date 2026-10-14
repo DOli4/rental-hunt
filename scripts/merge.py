@@ -78,7 +78,7 @@ def main(run_path):
     json.dump(doc, open(LISTINGS, "w"), indent=1, ensure_ascii=False)
     os.makedirs(os.path.join(ROOT, "data", "history"), exist_ok=True)
     json.dump(doc, open(os.path.join(ROOT, "data", "history", date + ".json"), "w"), indent=1, ensure_ascii=False)
-    summary = {"date": date, "added": added, "gone": gone,
+    summary = {"date": date, "sources_ok": sorted(ok_sources), "added": added, "gone": gone,
                "repriced": [{"id": a, "from": b, "to": c} for a, b, c in repriced],
                "changed": sorted(changed), "active": sum(1 for l in cur.values() if l.get("active", True))}
     json.dump(summary, open(os.path.join(ROOT, "data", "changed.json"), "w"), indent=1)
