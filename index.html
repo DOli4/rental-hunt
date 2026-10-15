@@ -397,9 +397,26 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 }
 
 /* --- signed-in account panel and name chip --- */
-.whoChip{cursor:pointer;font:inherit;font-size:11px}
-.whoChip i{background:var(--fuchsia);box-shadow:0 0 8px var(--fuchsia);animation:none}
-.whoChip.ro i{background:var(--muted);box-shadow:none}
+.profileBtn{display:inline-flex;align-items:center;gap:8px;padding:3px 10px 3px 3px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);font-size:12px;color:var(--fg)}
+.profileBtn:hover{border-color:color-mix(in srgb,var(--teal) 45%,var(--line))}
+.profileBtn svg{color:var(--muted)}
+.avatar{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--grad);color:var(--night);font-size:12px;font-weight:600;text-transform:uppercase}
+.avatar.lg{width:46px;height:46px;font-size:20px}
+.profile{width:min(420px,100%);gap:18px}
+.pfHead{display:flex;align-items:center;gap:14px}
+.pfWho{flex:1;min-width:0} .pfWho h2{font-size:18px} .pfWho p{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pfSec{display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--line);padding-top:14px}
+.pfRow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 0;cursor:pointer}
+.pfRow b{display:block;font-weight:400;font-size:13px} .pfRow small{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
+.pfRow select{background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:12px}
+.pfNote{font-size:12.5px!important}
+.pfFoot{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding-top:14px}
+.switch{appearance:none;flex:none;width:38px;height:22px;border-radius:999px;background:var(--line);position:relative;cursor:pointer;margin:0;transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--fg);transition:transform .2s}
+.switch:checked{background:var(--grad)} .switch:checked::after{transform:translateX(16px);background:var(--night)}
+/* calm mode (profile setting): same as the system's reduce-motion */
+.calm *{animation:none!important;transition:none!important} .calm .fx,.calm .ringfx{display:none}
+.calm .fLines .base line{stroke-dashoffset:0} .calm .fLines .pulse{display:none}
 .whoBox{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)}
 .whoCard{position:static;margin:0;color:inherit;width:min(380px,100%);background:var(--panel);border:1px solid color-mix(in srgb,var(--teal) 35%,var(--line));border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 80px rgba(0,0,0,.5);animation:popIn .25s cubic-bezier(.2,1.3,.4,1)}
 .whoCard h2{font-size:20px} .whoCard h2 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -478,7 +495,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
   <div class="topbar">
     <div class="brand">rental<b>hunt</b>&gt;</div>
     <span class="live" id="liveChip" hidden title="Changes from anyone appear here within seconds"><i></i>Live</span><span class="sync" id="sync">connecting…</span>
-    <button class="live whoChip ro" id="whoChip" type="button" title="Sign in with Google"><i></i><span id="whoName">Sign in</span></button>
+    <button class="profileBtn" id="whoChip" type="button" aria-haspopup="dialog" title="Profile and settings"><span class="avatar" id="whoAvatar" aria-hidden="true"></span><span id="whoName">Profile</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
     <label class="sel">Area
       <select id="fArea"><option value="core">Within 10 min</option><option value="nearby">Just outside</option><option value="all">Everything</option></select></label>
     <label class="sel">Max
@@ -569,10 +586,24 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 <aside class="drawer" id="drawer" hidden aria-modal="true" role="dialog" aria-labelledby="dTitle"></aside>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden><span class="ti" id="toastI"></span><span class="tt" id="toastT"></span></div>
 <div class="whoBox" id="whoBox" hidden>
-  <dialog class="whoCard" open aria-labelledby="whoTitle">
-    <h2 id="whoTitle">Rental <span>Hunt</span></h2>
-    <p id="whoMsg"></p>
-    <div class="row" style="justify-content:flex-end"><button type="button" class="btn" id="whoSignOut">Sign out</button><button type="button" class="btn primary" id="whoClose">Close</button></div>
+  <dialog class="whoCard profile" open aria-labelledby="whoTitle">
+    <div class="pfHead">
+      <span class="avatar lg" id="pfAvatar" aria-hidden="true"></span>
+      <div class="pfWho"><h2 id="whoTitle">Profile</h2><p id="whoMsg"></p></div>
+      <button type="button" class="iconbtn" id="whoClose" aria-label="Close profile">×</button>
+    </div>
+    <div class="pfSec">
+      <div class="label">On this device</div>
+      <label class="pfRow" for="pfToasts"><span><b>Pop-ups when others change things</b><small>A note when someone hearts, marks or comments on a place</small></span><input type="checkbox" class="switch" id="pfToasts"></label>
+      <label class="pfRow" for="pfCalm"><span><b>Calm mode</b><small>Turns off the moving lines, sparkles and heart bursts</small></span><input type="checkbox" class="switch" id="pfCalm"></label>
+      <label class="pfRow" for="pfStart"><span><b>Open on</b><small>Which list you see first</small></span>
+        <select id="pfStart"><option value="last">Where I left off</option><option value="places">All places</option><option value="shortlist">Our shortlist</option></select></label>
+    </div>
+    <div class="pfSec">
+      <div class="label">Account</div>
+      <p class="pfNote">Your name on hearts and notes comes from your Google account. You stay signed in on this device for 30 days, until you sign out.</p>
+    </div>
+    <div class="pfFoot"><a class="btn" href="privacy.html">Privacy</a><button type="button" class="btn primary" id="whoSignOut">Sign out</button></div>
   </dialog>
 </div>
 

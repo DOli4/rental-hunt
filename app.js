@@ -456,7 +456,7 @@ document.addEventListener("click", async e=>{
   const an=el.closest("[data-addnote]"); if(an){ e.stopPropagation(); const id=an.dataset.addnote; const box=an.closest(".notesBox"); const ta=box&&box.querySelector("textarea[data-nin]"); if(ta && ta.value.trim()){ const v=ta.value; ta.value=""; const ok=await addNote(id,v); if(ok){ noteAdded(an.getBoundingClientRect()); toast("Note saved for both of you","note"); } else ta.value=v; } else if(ta) ta.focus(); return; }
   const dn=el.closest("[data-delnote]"); if(dn){ e.stopPropagation(); const key=dn.dataset.delnote; const [id,nid]=key.split("|");
     if(S.delArm!==key){ S.delArm=key; clearTimeout(S.delT); S.delT=setTimeout(()=>{ if(S.delArm===key){ S.delArm=null; rerenderNotes(); } },3500); rerenderNotes(); return; }
-    S.delArm=null; const item=dn.closest(".nItem"); const log=(tr(id).log||[]).filter(n=>n.id!==nid); noteDeleted(item?item.getBoundingClientRect():dn.getBoundingClientRect()); if(item && !RM){ item.classList.add("nGone"); await new Promise(r=>setTimeout(r,380)); } if(await saveTrack(id,{log},{op:"note.delete",nid})) toast("Note deleted","del"); return; }
+    S.delArm=null; const item=dn.closest(".nItem"); const log=(tr(id).log||[]).filter(n=>n.id!==nid); noteDeleted(item?item.getBoundingClientRect():dn.getBoundingClientRect()); if(item && !calmNow()){ item.classList.add("nGone"); await new Promise(r=>setTimeout(r,380)); } if(await saveTrack(id,{log},{op:"note.delete",nid})) toast("Note deleted","del"); return; }
   const ed=el.closest("[data-editnote]"); if(ed){ e.stopPropagation(); S.editNote=ed.dataset.editnote; S.delArm=null; rerenderNotes(); const ta=document.querySelector(`textarea[data-nedit="${CSS.escape(S.editNote)}"]`); if(ta){ ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); } return; }
   if(el.closest("[data-canceledit]")){ e.stopPropagation(); S.editNote=null; rerenderNotes(); return; }
   const se=el.closest("[data-saveedit]"); if(se){ e.stopPropagation(); const key=se.dataset.saveedit; const [id,nid]=key.split("|"); const ta=se.closest(".nEdit").querySelector("textarea"); const v=(ta?ta.value:"").trim();
@@ -492,35 +492,36 @@ $("q").addEventListener("input",()=>render());
 let rz; window.addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(renderMap,120); });
 
 /* restore per-viewer view prefs */
-S.tab=store.get("tab","places"); ["fArea","fMax","fPets","sort"].forEach(id=>{ const v=store.get(id,null); if(v!=null) $(id).value=v; });
+S.tab=store.get("pfStart","last")==="last" ? store.get("tab","places") : store.get("pfStart","places"); ["fArea","fMax","fPets","sort"].forEach(id=>{ const v=store.get(id,null); if(v!=null) $(id).value=v; });
 ["tFibre","tSec","tHide"].forEach(id=>{ const v=store.get(id,null); if(v!=null) $(id).setAttribute("aria-pressed",v); });
 render();
 
 /* ---------- motion helpers ---------- */
-const RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const RM_SYS = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const calmNow = () => RM_SYS || document.documentElement.classList.contains("calm");
 const PAL=["#FF5CA8","#BC6CFF","#00F0FF","#FFB86B"];
 function fx(char,x,y,o){ const e=document.createElement("span"); e.className="fx"; e.textContent=char; e.style.left=x+"px"; e.style.top=y+"px";
   e.style.color=o.c; e.style.setProperty("--dx",o.dx+"px"); e.style.setProperty("--dy",o.dy+"px"); e.style.setProperty("--s",o.s); e.style.setProperty("--r",o.r+"deg"); e.style.setProperty("--fs",o.fs+"px"); e.style.setProperty("--t",o.t+"ms");
   document.body.appendChild(e); setTimeout(()=>e.remove(), o.t+60); }
 function ring(x,y,c){ const e=document.createElement("span"); e.className="ringfx"; e.style.left=x+"px"; e.style.top=y+"px"; e.style.setProperty("--c",c); document.body.appendChild(e); setTimeout(()=>e.remove(),700); }
-function hearts(rc){ if(RM) return; const x=rc.left+rc.width/2, y=rc.top+rc.height/2; ring(x,y,"#FF5CA8"); setTimeout(()=>ring(x,y,"#BC6CFF"),90);
+function hearts(rc){ if(calmNow()) return; const x=rc.left+rc.width/2, y=rc.top+rc.height/2; ring(x,y,"#FF5CA8"); setTimeout(()=>ring(x,y,"#BC6CFF"),90);
   for(let i=0;i<14;i++){ const a=-Math.PI/2+(Math.random()-.5)*Math.PI*1.25, d=50+Math.random()*80;
     fx(i%4===3?"✦":"♥", x, y, {c:PAL[i%PAL.length], dx:Math.cos(a)*d, dy:Math.sin(a)*d-20, s:(.8+Math.random()*.9).toFixed(2), r:Math.round((Math.random()-.5)*70), fs:12+Math.random()*12, t:800+Math.random()*500}); } }
-function noteAdded(rc){ if(RM) return; const x=rc.left+rc.width/2, y=rc.top+rc.height/2; ring(x,y,"#00F0FF");
+function noteAdded(rc){ if(calmNow()) return; const x=rc.left+rc.width/2, y=rc.top+rc.height/2; ring(x,y,"#00F0FF");
   fx("✈",x,y,{c:"#00F0FF",dx:70,dy:-90,s:1.5,r:-20,fs:18,t:950});
   for(let i=0;i<9;i++){ const a=-Math.PI/2+(Math.random()-.5)*Math.PI, d=35+Math.random()*55; fx(["✎","✦","♪","•"][i%4],x,y,{c:PAL[i%PAL.length],dx:Math.cos(a)*d,dy:Math.sin(a)*d-10,s:(.7+Math.random()*.6).toFixed(2),r:Math.round((Math.random()-.5)*60),fs:10+Math.random()*9,t:700+Math.random()*400}); } }
-function noteEdited(rc){ if(RM) return; const x=rc.left+rc.width/2, y=rc.top+rc.height/2; ring(x,y,"#FFB86B");
+function noteEdited(rc){ if(calmNow()) return; const x=rc.left+rc.width/2, y=rc.top+rc.height/2; ring(x,y,"#FFB86B");
   for(let i=0;i<7;i++){ const a=Math.random()*Math.PI*2, d=25+Math.random()*40; fx(i%3===0?"✎":"✧",x,y,{c:i%2?"#FFB86B":"#BC6CFF",dx:Math.cos(a)*d,dy:Math.sin(a)*d,s:(.8+Math.random()*.5).toFixed(2),r:Math.round(Math.random()*120-60),fs:11+Math.random()*8,t:650+Math.random()*300}); } }
-function noteDeleted(rc){ if(RM) return; const x=rc.right-30, y=rc.top+rc.height/2;
+function noteDeleted(rc){ if(calmNow()) return; const x=rc.right-30, y=rc.top+rc.height/2;
   for(let i=0;i<10;i++){ const a=(Math.random()-.5)*Math.PI*.9, d=30+Math.random()*60; fx(i%3===0?"✕":"•",x,y,{c:i%2?"#ff4d5e":"#8b9490",dx:Math.cos(a)*d+20,dy:Math.sin(a)*d+18,s:(.5+Math.random()*.6).toFixed(2),r:Math.round(Math.random()*200),fs:9+Math.random()*9,t:550+Math.random()*350}); } }
-function puff(rc){ if(RM) return; const x=rc.left+rc.width/2, y=rc.top+rc.height/2; for(let i=0;i<5;i++) fx("·",x,y,{c:"#8b9490",dx:(Math.random()-.5)*60,dy:20+Math.random()*30,s:1.4,r:0,fs:22,t:600}); }
-function sparkle(rc,st){ if(RM) return; const x=rc.left+rc.width/2, y=rc.top+rc.height/2; const c={interested:"#BC6CFF",contacted:"#00F0FF",viewing:"#FFB86B",applied:"#f4f7f5",no:"#ff4d5e"}[st]||"#BC6CFF"; ring(x,y,c);
+function puff(rc){ if(calmNow()) return; const x=rc.left+rc.width/2, y=rc.top+rc.height/2; for(let i=0;i<5;i++) fx("·",x,y,{c:"#8b9490",dx:(Math.random()-.5)*60,dy:20+Math.random()*30,s:1.4,r:0,fs:22,t:600}); }
+function sparkle(rc,st){ if(calmNow()) return; const x=rc.left+rc.width/2, y=rc.top+rc.height/2; const c={interested:"#BC6CFF",contacted:"#00F0FF",viewing:"#FFB86B",applied:"#f4f7f5",no:"#ff4d5e"}[st]||"#BC6CFF"; ring(x,y,c);
   const chars=st==="applied"?["🎉","✦","✦"]:st==="viewing"?["🔑","✦"]:st==="no"?["✕"]:["✦","✧"];
   for(let i=0;i<(st==="no"?4:10);i++){ const a=Math.random()*Math.PI*2, d=30+Math.random()*50; fx(chars[i%chars.length],x,y,{c:i%2?c:PAL[i%4],dx:Math.cos(a)*d,dy:Math.sin(a)*d,s:(.7+Math.random()*.6).toFixed(2),r:Math.round(Math.random()*180),fs:10+Math.random()*10,t:700+Math.random()*300}); } }
 function updSync(){ const el=$("sync"); if(!el) return; if(!S.lastSync){ el.textContent="connecting…"; return; } const s=Math.round((Date.now()-S.lastSync)/1000); el.textContent= s<10?"synced just now": s<60?`synced ${s}s ago`:`synced ${Math.round(s/60)} min ago`; }
 setInterval(updSync, 10000);
 // count-up numbers after each render
-function countUps(){ document.querySelectorAll("[data-count]").forEach(el=>{ const k=el.dataset.count, to=+el.dataset.to, from=S.prevNums[k]; S.prevNums[k]=to; if(RM || from===undefined&&!S.loaded || from===to) return; const f=from===undefined?0:from, t0=performance.now(), dur=700;
+function countUps(){ document.querySelectorAll("[data-count]").forEach(el=>{ const k=el.dataset.count, to=+el.dataset.to, from=S.prevNums[k]; S.prevNums[k]=to; if(calmNow() || from===undefined&&!S.loaded || from===to) return; const f=from===undefined?0:from, t0=performance.now(), dur=700;
   (function step(t){ const p=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-p,3); el.textContent=Math.round(f+(to-f)*e); if(p<1) requestAnimationFrame(step); })(t0); }); }
 const _render=render; render=function(){ _render(); countUps(); };
 /* legend minimise */
@@ -536,8 +537,9 @@ async function fetchData(){
   if(!CFG.workerUrl || !S.session) return [null,null];
   try{ const r=await fetch(CFG.workerUrl+"/data"+(S.dataSha?"?v="+encodeURIComponent(S.dataSha):""),{cache:"no-store",headers:authHeaders()});
     if(r.ok) return [await r.json(),null];
-    if(r.status===401||r.status===403) return [null,r.status]; }catch(e){ console.warn("[rental] poll failed", e); }
-  return [null,null];
+    if(r.status===401||r.status===403) return [null,r.status];
+    const j=await r.json().catch(()=>({})); return [null,null,j.error||`error ${r.status}`]; }catch(e){ console.warn("[rental] poll failed", e); }
+  return [null,null,""];
 }
 // A poll that left before one of our saves landed would undo it on screen, so keep our copy for a few seconds.
 // Returns true when it did, so the caller re-reads the full snapshot next time instead of trusting its sha.
@@ -557,6 +559,7 @@ function partnerChanged(id, t, o){
   const l=S.listings.get(id); S.flash.add(id); setTimeout(()=>{ S.flash.delete(id); },2600);
   if(!l) return;
   const who=t.updatedBy;
+  if(!store.get("pfToasts",true)) return; // pop-ups switched off in the profile
   if(logN>oldN && t.status===o.status){
     const text=String(t.log[logN-1].text);
     toast(`${who} added a note on ${l.suburb}: “${text.slice(0,60)}${text.length>60?"…":""}”`,"partner");
@@ -573,12 +576,12 @@ async function load(){
   loading=true;
   const started=Date.now(), sess=S.session;
   try{
-    const [d,denied]=await fetchData();
+    const [d,denied,why]=await fetchData();
     if(S.session!==sess) return;
     if(denied){ signOut(denied===403?"You're not on the invite list any more. Ask Dieter to add you.":"Your sign-in expired. Please sign in again."); return; }
     if(!d){
       if(S.listings.size){ $("sync").textContent="reconnecting…"; }
-      else { banner(CFG.workerUrl?"Couldn't load places right now. It keeps trying every few seconds.":"The site's server isn't set up yet."); }
+      else { banner(CFG.workerUrl?`Couldn't load places${why?` (${why})`:""}. It keeps trying every few seconds.`:"The site's server isn't set up yet."); }
       return;
     }
     banner(""); S.lastSync=Date.now(); updSync();
@@ -600,8 +603,7 @@ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==
 function banner(msg){ $("banner").hidden=!msg; $("banner").textContent=msg||""; }
 function updWho(){
   const on=!!S.session;
-  $("whoName").textContent=on?S.me:"Sign in"; $("whoChip").classList.toggle("ro",!on); $("liveChip").hidden=!on;
-  $("whoChip").title=on?"Signed in as "+S.me+" · tap to sign out":"Sign in with Google";
+  $("whoName").textContent=on?S.me:"Profile"; $("whoAvatar").textContent=on?String(S.me||"?").charAt(0):""; $("liveChip").hidden=!on;
 }
 function remember(k,v){ try{ if(v) localStorage.setItem(k,v); else localStorage.removeItem(k); }catch(e){ console.warn("[rental] browser storage unavailable", e); } }
 function signOut(msg){
@@ -636,13 +638,18 @@ function showHome(msg){
 }
 function openWho(msg){
   if(!S.session){ showHome(msg); return; }
-  const who=S.email ? `${S.me} (${S.email})` : S.me;
-  $("whoMsg").textContent=`Signed in as ${who}.`; $("whoBox").hidden=false; $("whoClose").focus();
+  $("whoTitle").textContent=S.me; $("whoMsg").textContent=S.email||"Signed in"; $("pfAvatar").textContent=String(S.me||"?").charAt(0);
+  $("pfToasts").checked=store.get("pfToasts",true); $("pfCalm").checked=store.get("pfCalm",false); $("pfStart").value=store.get("pfStart","last");
+  $("whoBox").hidden=false; $("whoClose").focus();
 }
 function closeWho(){ $("whoBox").hidden=true; }
 $("whoChip").addEventListener("click",()=>openWho(""));
 $("whoClose").addEventListener("click",closeWho);
 $("whoSignOut").addEventListener("click",()=>{ signOut(""); toast("Signed out","info"); });
+// profile settings live in this browser only
+$("pfToasts").addEventListener("change",e=>store.set("pfToasts",e.target.checked));
+$("pfCalm").addEventListener("change",e=>{ store.set("pfCalm",e.target.checked); document.documentElement.classList.toggle("calm",e.target.checked); });
+$("pfStart").addEventListener("change",e=>store.set("pfStart",e.target.value));
 $("whoBox").addEventListener("click",e=>{ if(e.target.id==="whoBox") closeWho(); });
 $("whoBox").addEventListener("keydown",e=>{ if(e.key==="Escape"){ e.stopPropagation(); closeWho(); } });
 // Local preview only (googleClientId "dev"): the mock in test/dev.mjs plays Google.
