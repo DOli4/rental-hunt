@@ -294,42 +294,48 @@ const safeUrl = u => /^https:\/\//i.test(u||"") ? esc(u) : "#";
 const photosOf = l => (Array.isArray(l.photos)?l.photos:[]).filter(u=>/^https:\/\//i.test(u)).slice(0,12);
 const photoImg = u => `<img class="lp" src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;
 document.addEventListener("error", e=>{ const t=e.target; if(t.classList && t.classList.contains("lp")) (t.closest(".galThumb")||t).remove(); }, true); // hide broken photos
-// Panel card, shaped like a "spec sheet": matte blue outline with cut corners and notches (one SVG that scales
-// with the card), the photo in a stepped window with a glowing purple frame, a side tab with the type, an info
-// panel (darker-blue labels, glowing light-blue values) and a glowing purple block with the price and the heart.
+// Panel card in the "poster" style: a deep-blue upper block holding the photo (glowing purple frame) steps down
+// into a lighter steel-blue lower block along a dark band and a thin circuit line; below sit the price tag, three
+// meter bars and a bordered info box. Labels are darker blue, values glow light blue. One SVG (200x300 box) draws
+// the shapes; the card keeps a 2:3 shape so the content boxes (same numbers, in %) line up with it.
 const PET_SHORT={"Pets OK":"OK","No pets":"No","Small pets OK":"Small","Dogs only, no cats":"No cats","Pets: ask":"Ask"};
 function panelCard(l, i){
   const st=statusOf(l.id), t=tr(l.id), pc=petClass(l), fav=SHORT.includes(st), ph=photosOf(l), notes=(t.log||[]).length;
-  const no=String((i||0)+1).padStart(2,"0");
-  const spec=(k,v,cls)=>`<div><dt>${k}</dt><dd${cls?` class="${cls}"`:""}>${v}</dd></div>`;
+  const no=String((i||0)+1).padStart(2,"0"), pct=v=>Math.round(Math.max(.04,Math.min(1,v))*100);
+  const bar=(k,v,f)=>`<div class="pcBar"><span class="micro">${k}</span><b>${v}</b><i><s style="width:${f}%"></s></i></div>`;
+  const kv=(k,v,cls)=>`<span><em>${k}</em><b${cls?` class="${cls}"`:""}>${v}</b></span>`;
   return `<article class="pcard ${l.active===false?"gone":""}" data-id="${esc(l.id)}" tabindex="0" aria-label="${esc(l.type+" in "+l.suburb+", "+rand(l.price)+" a month")}">
     <svg class="pcShape" viewBox="0 0 200 300" preserveAspectRatio="none" aria-hidden="true">
-      <path class="o" d="M8 0H120L130 10H192L200 18V138L196 142V246L200 250V292L192 300H8L0 292V156L4 152V116L0 112V8Z"/><path class="t" d="M0 160L8 166V214L0 220Z"/><path class="p" d="M16 136H150L160 146V236L150 246H16Z"/>
-      <path class="w" d="M16 16H112L120 24H184V112L168 128H32L16 112Z"/><path class="a" d="M126 232H186V276L166 296H134L126 288Z"/>
-      <path class="x" d="M68 3.5v9M63.5 8h9"/><circle class="x" cx="68" cy="8" r="2.4"/>
+      <path class="o" d="M8 0H120L130 10H192L200 18V138L196 142V246L200 250V292L192 300H8L0 292V156L4 152V116L0 112V8Z"/><path class="u" d="M8 0H120L130 10H192L200 18V138L196 142V150H148L138 160H58L48 150H4V116L0 112V8Z"/><path class="d" d="M44 150H58L66 158H136L146 148H196V158H150L140 168H62L52 158H44Z"/>
+      <path class="c" d="M28 144H46L56 154H134L146 142H184"/><circle class="cd" cx="28" cy="144" r="1.6"/><circle class="cd" cx="184" cy="142" r="1.6"/>
+      <path class="t" d="M0 172L8 178V226L0 232Z"/><path class="w" d="M18 22H108L116 30H182V118L172 128H28L18 118Z"/>
+      <g class="x"><circle cx="10" cy="11" r="3"/><path d="M10 5.5v11M4.5 11h11"/><path d="M140 15h4v4h-4zM146 15h4v4h-4zM146 21h4v4h-4z"/></g>
+      <g class="xb"><path d="M12 276h12v12H12zM12 276l12 12M24 276l-12 12"/><path d="M176 276h12v12h-12zM176 276l12 12M188 276l-12 12"/></g>
     </svg>
+    <span class="pcGrain"></span>
     <div class="pcWin">
       ${ph.length?`<img class="lp pcImg" src="${esc(ph[0])}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`:""}
-      <span class="pcEmpty micro">No photo yet</span>
-      <span class="pcShade"></span>
-      <span class="pcNo micro"><b>${no}</b>${esc(l.type)}</span>
-      <span class="pcDate micro">${esc(l.first_seen||"")}</span>
-      <span class="pcTags">${isNew(l)?`<span class="pcFlag micro">New</span>`:""}${st!=="new"?`<span class="status st-${st}">${STATUS_LABEL[st]}</span>`:""}${l.note?`<span class="pcFlag warn micro">Check note</span>`:""}</span>
+      <span class="pcEmpty micro">No photo yet</span><span class="pcShade"></span>
+      <span class="pcNo micro"><b>${no}</b>${esc(l.type)}</span><span class="pcDate micro">${esc(l.first_seen||"")}</span>
+      ${(isNew(l)||st!=="new"||l.note)?`<span class="pcPlate">${isNew(l)?`<span class="micro">New</span>`:""}${st!=="new"?`<span class="micro st-${st}">${STATUS_LABEL[st]}</span>`:""}${l.note?`<span class="micro warn">Check note</span>`:""}</span>`:""}
       <span class="pcTicks"></span>
       ${ph.length?`<span class="pcCount micro">01 / ${String(ph.length).padStart(2,"0")}</span>`:""}
     </div>
-    <span class="pcTab micro">${esc(l.type)}</span>
-    <div class="pcInfo">
-      <h3>${esc(l.suburb)}</h3><div class="pcWhere">${esc(l.address||"Address on request")}</div>
-      <dl class="pcSpecs">
-        ${spec("Bed",l.beds)}${spec("Bath",l.baths)}${spec("Size",l.size_m2?l.size_m2+" m²":"—")}
-        ${spec("TecWise","~"+l.min_tecwise+" min")}${spec("Drive","~"+l.min_drive+" min")}${spec("Available",esc(l.available||"Ask"))}
-        ${spec("Pets",esc(PET_SHORT[petLabel(l)]||petLabel(l)),"pet-"+pc)}${spec("Fibre",fibreOk(l)?"Yes":"Ask")}${spec("Security",secOk(l)?"Yes":"Ask")}
-      </dl>
+    <span class="pcTab micro">${esc(l.source)}</span>
+    <div class="pcPriceTag"><i class="pcHatch"></i><span class="pcPrice num">${rand(l.price)}</span><span class="micro">per month</span></div>
+    <div class="pcBars">
+      ${bar("Rent",pct(l.price/16000)+"%",pct(l.price/16000))}${bar("TecWise","~"+l.min_tecwise+"m",pct(1-l.min_tecwise/20))}${bar("Drive","~"+l.min_drive+"m",pct(1-l.min_drive/20))}
     </div>
-    <div class="pcAccent"><span class="micro">Per month</span><span class="pcPrice num">${rand(l.price)}</span></div>
-    <div class="pcFoot"><span class="src micro">${esc(l.source)}</span>
-      <span class="pcBtns"><button class="pcHeart" data-heart="${esc(l.id)}" aria-pressed="${fav}" aria-label="${fav?"Remove from shortlist":"Add to shortlist"}">${fav?"♥":"♡"}</button><button class="nBtn" data-opennotes="${esc(l.id)}" title="Notes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>Notes${notes?`<span class="c">${notes}</span>`:""}</button></span></div>
+    <div class="pcBox">
+      <div class="pcBoxHead"><h3>${esc(l.suburb)}</h3><span class="micro">${esc(l.type)}</span></div>
+      <div class="pcWhere micro">${esc(l.address||"Address on request")}</div>
+      <div class="pcKV">${kv("Bed",l.beds)}${kv("Bath",l.baths)}${kv("Size",l.size_m2?l.size_m2+"m²":"—")}${kv("Avail",esc(l.available||"Ask"))}
+        ${kv("Pets",esc(PET_SHORT[petLabel(l)]||petLabel(l)),"pet-"+pc)}${kv("Fibre",fibreOk(l)?"Yes":"Ask")}${kv("Security",secOk(l)?"Yes":"Ask")}</div>
+    </div>
+    <div class="pcFoot">
+      <button class="pcHeart" data-heart="${esc(l.id)}" aria-pressed="${fav}" aria-label="${fav?"Remove from shortlist":"Add to shortlist"}">${fav?"♥":"♡"}</button>
+      <button class="nBtn" data-opennotes="${esc(l.id)}" title="Notes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>Notes${notes?`<span class="c">${notes}</span>`:""}</button>
+    </div>
   </article>`;
 }
 function renderList(){
