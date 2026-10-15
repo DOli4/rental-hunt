@@ -321,7 +321,7 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
   background-image:radial-gradient(circle at 1px 1px,rgba(233,238,235,.05) 1px,transparent 1.5px);background-size:24px 24px}
 .micro{font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin:0}
 .fLines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.fLines line{stroke:var(--ln);stroke-width:1;vector-effect:non-scaling-stroke}
+.fLines line{stroke:var(--ln);stroke-width:.09} /* drawn in the 100x100 box; pathLength=1 drives the dashes */
 .fTop{position:relative;z-index:2;display:flex;align-items:center;gap:clamp(14px,3vw,40px);padding:22px clamp(18px,3.5vw,44px)}
 .fTop .brand{margin-right:0;font-size:14px}
 .fGrid{display:grid;grid-template-columns:repeat(3,3px);gap:3px}
@@ -355,6 +355,37 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .homeErr{margin:0;min-height:16px;font-size:12px;color:var(--red);text-align:center}
 .homeErr.busy{color:var(--muted)}
 .homeFacts{list-style:none;padding:0;display:flex;flex-direction:column;align-items:flex-end;gap:6px;justify-self:end}
+/* home motion: lines draw in, light runs along them, details tick over, the gradient flows. Off for reduced motion. */
+.home{--grad-loop:linear-gradient(90deg,#00F0FF,#BC6CFF,#FF5CA8,#BC6CFF,#00F0FF)}
+.fLines .base line{stroke-dasharray:1;stroke-dashoffset:1;animation:lnDraw 1.8s cubic-bezier(.65,0,.35,1) .2s forwards}
+.fLines .base line:nth-child(2){animation-delay:.4s} .fLines .base line:nth-child(3){animation-delay:.9s;animation-duration:.8s}
+.fLines .pulse line{stroke:url(#lnGrad);stroke-width:.2;stroke-linecap:round;stroke-dasharray:.07 .93;stroke-dashoffset:1;opacity:0;animation:lnRun 7s linear 2s infinite,lnShow .6s ease 2s forwards}
+.fLines .pulse line:nth-child(2){animation-delay:-1.5s,2.3s;animation-duration:9s,.6s}
+.fLines .pulse line:nth-child(3){stroke-dasharray:.25 .75;animation-duration:2.6s,.6s;animation-delay:1.4s,1.4s}
+@keyframes lnDraw{to{stroke-dashoffset:0}}
+@keyframes lnRun{to{stroke-dashoffset:-1}}
+@keyframes lnShow{to{opacity:.95}}
+.fRing{animation:hmSpin 26s linear infinite} .fCross{animation:hmSpin 14s linear infinite}
+@keyframes hmSpin{to{transform:rotate(360deg)}}
+.fIdx span{animation:hmBreathe 3.4s ease-in-out infinite} .fIdxL span{transform-origin:right} .fIdxR span{transform-origin:left;animation-delay:-1.7s}
+@keyframes hmBreathe{50%{transform:scaleX(1.7)}}
+.fDots i{animation:hmBlink 2.4s ease-in-out infinite}
+.fDots i:nth-child(2){animation-delay:.2s} .fDots i:nth-child(3){animation-delay:.4s} .fDots i:nth-child(4){animation-delay:.6s} .fDots i:nth-child(5){animation-delay:.8s}
+.fGrid i{animation:hmBlink 3s ease-in-out infinite} .fGrid i:nth-child(odd){animation-delay:-1.5s}
+@keyframes hmBlink{0%,100%{opacity:.3}40%{opacity:1;background:var(--cyan)}}
+.fRule{position:relative;overflow:hidden;opacity:1;background:rgba(139,148,144,.45)}
+.fRule::after{content:"";position:absolute;inset:0;width:45%;background:linear-gradient(90deg,transparent,#00F0FF,transparent);animation:hmRule 3.6s ease-in-out infinite}
+@keyframes hmRule{from{transform:translateX(-100%)}to{transform:translateX(230%)}}
+.pillar{animation:hmHatch 60s linear infinite}
+@keyframes hmHatch{to{background-position:-793px 0,0 0}}
+.slash,.word span:last-child,.home .brand b{background:var(--grad-loop);background-size:200% 100%;animation:hmFlow 6s linear infinite}
+.word span:last-child,.home .brand b{-webkit-background-clip:text;background-clip:text;color:transparent}
+@keyframes hmFlow{to{background-position:200% 0}}
+.word{animation:hmSpace 1.6s cubic-bezier(.2,.8,.2,1) both}
+@keyframes hmSpace{from{letter-spacing:.9em;opacity:0;filter:blur(6px)}}
+.kicker,.lede,.fBot{animation:hmUp .9s cubic-bezier(.2,.8,.2,1) both} .kicker{animation-delay:.3s} .lede{animation-delay:.6s} .fBot{animation-delay:.9s}
+@keyframes hmUp{from{opacity:0;transform:translateY(12px)}}
+@media (prefers-reduced-motion:reduce){.fLines .base line{stroke-dashoffset:0}.fLines .pulse{display:none}}
 @media (max-width:760px){
   .hideS,.vText,.fIdx,.fDots,.fCross,.fRing{display:none}
   .word{letter-spacing:.3em;margin-right:-.3em}
@@ -398,8 +429,9 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 <main class="home" id="home" aria-labelledby="homeTitle">
   <div class="frame">
     <svg class="fLines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-      <line x1="0" y1="0" x2="100" y2="100"/><line x1="100" y1="0" x2="0" y2="100"/>
-      <line x1="50" y1="0" x2="50" y2="14"/>
+      <defs><linearGradient id="lnGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100"><stop offset="0" stop-color="#00F0FF"/><stop offset=".5" stop-color="#BC6CFF"/><stop offset="1" stop-color="#FF5CA8"/></linearGradient></defs>
+      <g class="base"><line x1="0" y1="0" x2="100" y2="100" pathLength="1"/><line x1="100" y1="0" x2="0" y2="100" pathLength="1"/><line x1="50" y1="0" x2="50" y2="14" pathLength="1"/></g>
+      <g class="pulse"><line x1="0" y1="0" x2="100" y2="100" pathLength="1"/><line x1="100" y1="0" x2="0" y2="100" pathLength="1"/><line x1="50" y1="0" x2="50" y2="14" pathLength="1"/></g>
     </svg>
     <header class="fTop">
       <span class="fGrid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
