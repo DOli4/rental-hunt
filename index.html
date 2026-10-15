@@ -355,7 +355,8 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .homeErr{margin:0;min-height:16px;font-size:12px;color:var(--red);text-align:center}
 .homeErr.busy{color:var(--muted)}
 .homeFacts{list-style:none;padding:0;display:flex;flex-direction:column;align-items:flex-end;gap:6px;justify-self:end}
-/* home motion: lines draw in, light runs along them, details tick over, the gradient flows. Off for reduced motion. */
+/* home motion: lines draw in, light runs along them, details tick over, the gradient flows. Only when the visitor hasn't asked for reduced motion. */
+@media (prefers-reduced-motion:no-preference){
 .home{--grad-loop:linear-gradient(90deg,#00F0FF,#BC6CFF,#FF5CA8,#BC6CFF,#00F0FF)}
 .fLines .base line{stroke-dasharray:1;stroke-dashoffset:1;animation:lnDraw 1.8s cubic-bezier(.65,0,.35,1) .2s forwards}
 .fLines .base line:nth-child(2){animation-delay:.4s} .fLines .base line:nth-child(3){animation-delay:.9s;animation-duration:.8s}
@@ -385,7 +386,8 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 @keyframes hmSpace{from{letter-spacing:.9em;opacity:0;filter:blur(6px)}}
 .kicker,.lede,.fBot{animation:hmUp .9s cubic-bezier(.2,.8,.2,1) both} .kicker{animation-delay:.3s} .lede{animation-delay:.6s} .fBot{animation-delay:.9s}
 @keyframes hmUp{from{opacity:0;transform:translateY(12px)}}
-@media (prefers-reduced-motion:reduce){.fLines .base line{stroke-dashoffset:0}.fLines .pulse{display:none}}
+}
+.fLines .pulse line{opacity:0} /* still pages: no travelling light */
 @media (max-width:760px){
   .hideS,.vText,.fIdx,.fDots,.fCross,.fRing{display:none}
   .word{letter-spacing:.3em;margin-right:-.3em}
