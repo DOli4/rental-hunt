@@ -446,17 +446,33 @@ h2[data-n]::before{content:attr(data-n);color:var(--cyan);margin-right:12px;lett
 .photos{flex:none;display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
 .photos .lp{flex:0 0 85%;aspect-ratio:4/3;scroll-snap-align:start}
 
-/* --- spotlight glow on cards (ported from the GlowCard component): a border light that follows the
-   pointer and shifts hue from cyan on the left of the screen to pink on the right. Pointer devices only.
-   --lx/--ly are the pointer's position inside each card, set from JS; the original's background-attachment:fixed
-   trick breaks on masked layers in Chrome. --- */
+/* --- GlowCard: a 1:1 port of the React spotlight-card component (components/ui/spotlight-card.tsx) ----------
+   Same props-as-variables (--base, --spread, --radius, --border, --size, --outer, --hue) and the same four layers:
+   a spotlight wash inside the card, a coloured border light (::before), a white hot-spot (::after), and an inner
+   [data-glow] element that blurs into an outer glow. Colour presets: data-glow-color = blue | purple | green | red |
+   orange (the component's glowColor) plus "miami" for this site's cyan-to-pink sweep.
+   One deliberate difference: the pointer position is written per card (--x/--y, see app.js) instead of using
+   background-attachment:fixed, which Chrome ignores on masked layers. Pointer devices only, like a hover effect. --- */
+.glowInner{display:none}
 @media (hover:hover) and (pointer:fine){
-  .card{--glow-base:185;--glow-spread:150;--spot:340px;--hue:calc(var(--glow-base) + var(--xp,0) * var(--glow-spread));
-    background-image:radial-gradient(var(--spot) var(--spot) at var(--lx,-999px) var(--ly,-999px),hsl(var(--hue) 100% 70% / .09),transparent)}
-  .card::before,.card::after{content:"";position:absolute;inset:-1px;border-radius:inherit;border:2px solid transparent;pointer-events:none;
-    -webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) padding-box exclude,linear-gradient(#000 0 0)}
-  .card::before{background-image:radial-gradient(calc(var(--spot) * .9) calc(var(--spot) * .9) at var(--lx,-999px) var(--ly,-999px),hsl(var(--hue) 100% 64% / 1),transparent 100%);filter:brightness(2)}
-  .card::after{background-image:radial-gradient(calc(var(--spot) * .35) calc(var(--spot) * .35) at var(--lx,-999px) var(--ly,-999px),hsl(0 0% 100% / .85),transparent 100%)}
+  [data-glow]{--base:220;--spread:200;--radius:4;--border:2;--size:240;--outer:1;
+    --border-size:calc(var(--border) * 1px);--spotlight-size:calc(var(--size) * 1px);--hue:calc(var(--base) + var(--xp,0) * var(--spread));
+    background-image:radial-gradient(var(--spotlight-size) var(--spotlight-size) at var(--x,-999px) var(--y,-999px),hsl(var(--hue) calc(var(--saturation,100) * 1%) calc(var(--lightness,70) * 1%) / var(--bg-spot-opacity,.1)),transparent)}
+  [data-glow-color="blue"]{--base:220;--spread:200} [data-glow-color="purple"]{--base:280;--spread:300}
+  [data-glow-color="green"]{--base:120;--spread:200} [data-glow-color="red"]{--base:0;--spread:200}
+  [data-glow-color="orange"]{--base:30;--spread:200} [data-glow-color="miami"]{--base:185;--spread:150}
+  [data-glow]::before,[data-glow]::after{pointer-events:none;content:"";position:absolute;inset:calc(var(--border-size) * -1);
+    border:var(--border-size) solid transparent;border-radius:calc(var(--radius) * 1px);
+    -webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) padding-box exclude,linear-gradient(#000 0 0)}
+  [data-glow]::before{background-image:radial-gradient(calc(var(--spotlight-size) * .75) calc(var(--spotlight-size) * .75) at var(--x,-999px) var(--y,-999px),
+    hsl(var(--hue) calc(var(--saturation,100) * 1%) calc(var(--lightness,50) * 1%) / var(--border-spot-opacity,1)),transparent 100%);filter:brightness(2)}
+  [data-glow]::after{background-image:radial-gradient(calc(var(--spotlight-size) * .5) calc(var(--spotlight-size) * .5) at var(--x,-999px) var(--y,-999px),
+    hsl(0 100% 100% / var(--border-light-opacity,1)),transparent 100%)}
+  [data-glow] > [data-glow]{display:block;position:absolute;inset:0;will-change:filter;opacity:var(--outer);border-radius:calc(var(--radius) * 1px);
+    filter:blur(calc(var(--border-size) * 10));background:none;pointer-events:none;border:none}
+  [data-glow] > [data-glow]::before{inset:-10px;border-width:10px}
+  .card[data-glow]{content-visibility:auto;contain-intrinsic-size:auto 260px} /* off-screen cards skip painting their glow */
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.fx,.ringfx{display:none}}
 </style>

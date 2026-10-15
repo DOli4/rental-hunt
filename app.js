@@ -302,7 +302,8 @@ function card(l, i){
   if(l.available) facts.push(`<span class="fact">Available <b>${esc(l.available)}</b></span>`);
   if(l.note) facts.push(`<span class="fact ask">Check note</span>`);
   const ph=photosOf(l)[0];
-  return `<article class="card ${l.active===false?"gone":""}" data-id="${esc(l.id)}" tabindex="0">
+  return `<article class="card ${l.active===false?"gone":""}" data-id="${esc(l.id)}" tabindex="0" data-glow data-glow-color="miami">
+    <div class="glowInner" data-glow aria-hidden="true"></div>
     ${isNew(l)?`<span class="newFlag">New</span>`:""}
     ${ph?photoImg(ph):""}
     <div class="cardNo micro"><span>${String((i||0)+1).padStart(2,"0")}</span>${esc(l.type)}</div>
@@ -660,12 +661,13 @@ $("whoBox").addEventListener("keydown",e=>{ if(e.key==="Escape"){ e.stopPropagat
 $("devForm").addEventListener("submit",async e=>{ e.preventDefault();
   try{ signIn(await (await fetch(CFG.devTokenUrl+"?email="+encodeURIComponent($("devEmail").value.trim()))).text()); }catch(err){ console.warn("[rental] dev sign-in failed", err); homeMsg("Dev sign-in failed"); } });
 
-/* ---------- spotlight glow: one pointer listener, once per frame: read every on-screen card's box, then write ---------- */
+/* ---------- GlowCard pointer tracking (the component's syncPointer): one listener, once per frame, read every
+   on-screen card's box then write --x/--y inside it (and --xp/--yp across the screen) ---------- */
 (function(){ if(!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
   let f=0, x=-1e4, y=-1e4;
   const paint=()=>{ f=0; const cards=[...$("view").querySelectorAll(".card")], rs=cards.map(c=>c.getBoundingClientRect());
-    cards.forEach((c,i)=>{ const r=rs[i]; if(r.bottom<0||r.top>innerHeight) return; c.style.setProperty("--lx",(x-r.left).toFixed(1)+"px"); c.style.setProperty("--ly",(y-r.top).toFixed(1)+"px"); });
-    $("view").style.setProperty("--xp",(x/innerWidth).toFixed(3)); };
+    cards.forEach((c,i)=>{ const r=rs[i]; if(r.bottom<0||r.top>innerHeight) return; c.style.setProperty("--x",(x-r.left).toFixed(1)+"px"); c.style.setProperty("--y",(y-r.top).toFixed(1)+"px"); });
+    $("view").style.setProperty("--xp",(x/innerWidth).toFixed(3)); $("view").style.setProperty("--yp",(y/innerHeight).toFixed(3)); };
   const kick=()=>{ if(!f) f=requestAnimationFrame(paint); };
   document.addEventListener("pointermove",e=>{ x=e.clientX; y=e.clientY; kick(); },{passive:true});
   window.addEventListener("scroll",kick,{passive:true});
