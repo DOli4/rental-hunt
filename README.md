@@ -1,7 +1,6 @@
 # Centurion Rental Hunt
 
-Dieter's hub for finding a 3-bedroom, 2-bathroom rental under R16 000 near TecWise (Estcourt Ave,
-Wierdapark) and Drive (Irene).
+Dieter's hub for finding a 3-bedroom, 2-bathroom rental under R16 000 in Centurion, close to work.
 
 - **The site:** https://doli4.github.io/rental-hunt/
 - **Who can use it:** people on the invite list sign in with Google. Then they can see the places,
@@ -31,7 +30,9 @@ github.io page (index.html)  ── Google sign-in ──▶  save helper (Cloud
 
 | Path | What it is |
 |---|---|
-| `index.html` | The whole website |
+| `index.html` | The page (layout and styles) |
+| `boot.js` | Tiny head script: refuses to run inside other sites and skips the sign-in flash when signed in |
+| `app.js` | Everything the page does (kept out of the HTML so the security policy can forbid inline scripts) |
 | `config.js` | The save helper's address and the Google sign-in client id (both public) |
 | `worker/` | The save helper and its [setup steps](worker/README.md) |
 | `scripts/merge.py` | Folds a night's results into the data (new, still listed, gone, price changes) |
@@ -51,8 +52,9 @@ In `DOli4/rental-hunt-data` (branch `data`):
 
 ## Notes
 
-- Drive times are estimates from straight-line distance, not routes. Use "Route to Drive" on a place
-  for the real trip.
+- Drive times are estimates from straight-line distance, not routes. Use the "Route to …" buttons on a
+  place for the real trip. The exact work locations live only in the private data now (older commits of this
+  repo still contain them).
 - Property24 and Private Property hide agent numbers behind a "Show number" button with a bot check,
   so the search doesn't collect them. Open the listing, tap the button, and paste the number into the
   place on the site; the WhatsApp, call and email buttons then work for everyone.

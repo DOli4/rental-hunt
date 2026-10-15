@@ -9,7 +9,7 @@ TODAY = "2026-10-14"
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from geo import enrich, ANCHORS  # noqa: E402
+from geo import anchors, enrich  # noqa: E402
 
 PP = "Private Property"; P24 = "Property24"; MP = "MyProperty"; GT = "Gumtree"; FB = "Facebook Marketplace"; DEV = "Developer"
 
@@ -262,7 +262,7 @@ for r in R:
 
 doc = {"updated": TODAY, "criteria": {
     "beds_min": 3, "baths_min": 2, "max_price": 16000,
-    "anchors": ANCHORS, "core_minutes": 10, "nearby_minutes": 15,
+    "anchors": anchors(), "core_minutes": 10, "nearby_minutes": 15,
     "nice_to_have": ["pet friendly (two cats)", "fibre", "good security"]},
     "listings": sorted(out, key=lambda x: (x["tier"] != "core", x["price"]))}
 os.makedirs(os.path.join(ROOT, "data", "history"), exist_ok=True)

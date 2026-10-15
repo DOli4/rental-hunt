@@ -32,7 +32,9 @@ const site = workerUrl => http.createServer(async (req, res) => {
   try {
     const f = normalize(join(ROOT, p === "/" ? "index.html" : p));
     if (!f.startsWith(normalize(ROOT))) throw 0;
-    const buf = await readFile(f);
+    let buf = await readFile(f);
+    // local preview talks to the fake worker + fake Google on 127.0.0.1, so widen the page's connect-src for it
+    if (f.endsWith("index.html")) buf = Buffer.from(String(buf).replace("connect-src 'self'", "connect-src 'self' http://127.0.0.1:5601 http://127.0.0.1:5602"));
     res.writeHead(200, { "Content-Type": TYPES[extname(f)] || "application/octet-stream" }); res.end(buf);
   } catch { res.writeHead(404); res.end("not found"); }
 });

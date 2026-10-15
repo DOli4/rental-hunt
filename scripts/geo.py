@@ -1,11 +1,16 @@
 """Map pins, drive-time estimates and the core / nearby / outside split."""
-import math
+import json, math, os
+from functools import lru_cache
 
-# The two places the drive times are measured to
-ANCHORS = {
-    "tecwise": {"name": "TecWise", "label": "TecWise · Estcourt Ave, Wierdapark", "lat": -25.8722, "lng": 28.1590},
-    "drive": {"name": "Drive", "label": "Drive · Guernsey Business Park, Irene", "lat": -25.8538, "lng": 28.2506},
-}
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+@lru_cache(maxsize=1)
+def anchors():
+    """The two work places the drive times are measured to. They live in the private data
+    (data/listings.json -> criteria.anchors), not in this public repo."""
+    with open(os.path.join(ROOT, "data", "listings.json"), encoding="utf-8") as f:
+        return json.load(f)["criteria"]["anchors"]
 
 # Suburb centres (OpenStreetMap place nodes where available) for listings without an exact pin.
 CENTRES = {
@@ -53,8 +58,9 @@ def enrich(l):
     else:
         l["geo"] = "exact"
     p = (l["lat"], l["lng"])
-    l["min_tecwise"] = drive_min(km(p, (ANCHORS["tecwise"]["lat"], ANCHORS["tecwise"]["lng"])))
-    l["min_drive"] = drive_min(km(p, (ANCHORS["drive"]["lat"], ANCHORS["drive"]["lng"])))
+    a = anchors()
+    l["min_tecwise"] = drive_min(km(p, (a["tecwise"]["lat"], a["tecwise"]["lng"])))
+    l["min_drive"] = drive_min(km(p, (a["drive"]["lat"], a["drive"]["lng"])))
     l.pop("min_insideout", None)
     best = min(l["min_tecwise"], l["min_drive"])
     l["tier"] = "core" if best <= CORE_MIN else ("nearby" if best <= NEARBY_MIN else "outside")

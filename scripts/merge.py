@@ -22,7 +22,7 @@ data/ is a checkout of the repo's `data` branch (git clone -b data --single-bran
 import json, os, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from geo import enrich  # noqa: E402
+from geo import anchors, enrich  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LISTINGS = os.path.join(ROOT, "data", "listings.json")
@@ -89,7 +89,7 @@ def main(run_path):
     meta = {"last_run": date, "first_run": old.get("first_run", date), "count": summary["active"],
             "added": len(added), "gone": len(gone), "repriced": len(repriced),
             "sources": ", ".join(sorted(ok_sources)) or old.get("sources", ""),
-            "anchors": "TecWise (Estcourt Ave, Wierdapark) and Drive (Irene)"}
+            "anchors": " and ".join(a["label"] for a in anchors().values())}
     json.dump(meta, open(meta_path, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     print(json.dumps({k: (len(v) if isinstance(v, list) else v) for k, v in summary.items()}))
 

@@ -10,8 +10,9 @@ CAPTCHA, never work around a site that blocks you. If a site blocks you, skip it
 ## What qualifies
 
 - 3+ bedrooms, 2+ bathrooms, rent R16 000 per month or less.
-- Within ~10 min drive of **TecWise** (Estcourt Ave, Wierdapark, Centurion) or **Drive** (Guernsey Business
-  Park, Saltus St, Irene). Places 10–17 min away show as "just outside". `scripts/geo.py` decides this; keep
+- Within ~10 min drive of either of Dieter's two work places (names and pins are in the private data:
+  `data/listings.json` → `criteria.anchors`; don't copy them anywhere public). Places 10–17 min away show as
+  "just outside". `scripts/geo.py` decides this; keep
   any Centurion listing and let the script drop the far ones. Skip "Zwartkoppies" (a different area east of Pretoria).
 - Nice to have: pet friendly (two indoor cats, so record "no cats" / "no pets"), fibre, good security.
 
