@@ -1,6 +1,7 @@
 name = "rental-hunt"
 main = "worker.js"
 compatibility_date = "2026-01-01"
+account_id = "419e0d5f1fa2ca16e26480563f6b568e"
 
 [vars]
 REPO = "DOli4/rental-hunt-data"

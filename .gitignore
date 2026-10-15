@@ -6,3 +6,4 @@ run.json
 node_modules/
 .claude/
 lcov.info
+.wrangler/
