@@ -4,45 +4,42 @@ Dieter's hub for finding a 3-bedroom, 2-bathroom rental under R16 000 near TecWi
 Wierdapark) and Drive (Irene).
 
 - **The site:** https://doli4.github.io/rental-hunt/
-- **Share it:** send the link plus the passcode. On their first visit people type their name and the
-  passcode; after that they can heart places, set statuses, add/edit/delete notes and save numbers.
-  Without the passcode the site still works, just read-only.
+- **Who can use it:** people on the invite list sign in with Google. Then they can see the places,
+  heart them, set statuses, add/edit/delete notes and save numbers. Everyone else sees a sign-in screen.
+- **Invite someone:** add their Google email to `ALLOWED_EMAILS` on Cloudflare (see
+  [worker/README.md](worker/README.md#later)), then send them the link.
 - **Every evening** a scheduled Claude session searches Property24, Private Property, MyProperty,
-  Gumtree and new developments and commits the results to the `data` branch. The steps are in
+  Gumtree and new developments and commits the results to the private data repo. The steps are in
   [ROUTINE.md](ROUTINE.md).
-
-> **Heads-up:** the passcode is saved in each visitor's browser for `doli4.github.io`, which this site
-> shares with Dieter's CV site. Fine for rental notes; give the site its own domain if that ever matters.
->
-> **Heads-up:** this repo is public (GitHub Pages is only free on public repos), so anyone who finds it
-> can read the listings, notes and any phone numbers saved here. Don't put anything private in notes.
 
 ## How it fits together
 
 ```
-github.io page (index.html)  ── reads ──▶  save helper (Cloudflare Worker)  ── GitHub API ──▶  data branch
-                             ── saves ──▶          checks the passcode                        listings.json, track.json …
+github.io page (index.html)  ── Google sign-in ──▶  save helper (Cloudflare Worker)  ── GitHub API ──▶  DOli4/rental-hunt-data
+     public code, no data         invite list,           holds the keys                     (private) listings.json,
+                                  30-day session                                            track.json, meta.json …
 ```
 
-- **`main` branch** is the website. GitHub Pages publishes it.
-- **`data` branch** holds everything the site shows, as plain files. Saves land there so they don't
-  rebuild the website every time.
-- If the save helper is down, the page falls back to reading the `data` branch directly (read-only,
-  up to ~5 minutes old).
+- **This repo** (public) is just the website code. GitHub Pages publishes it.
+- **`DOli4/rental-hunt-data`** (private) holds everything the site shows, as plain files on its `data`
+  branch. Only the save helper and the nightly search can read it.
+- The page stores a signed 30-day session in the browser (for `doli4.github.io`, which this site shares
+  with Dieter's CV site). Signing out forgets it on that device; removing someone from the invite list, or
+  replacing `SESSION_SECRET`, ends it everywhere.
 
 ## What's where
 
 | Path | What it is |
 |---|---|
 | `index.html` | The whole website |
-| `config.js` | Where the save helper lives (`workerUrl`) and where the read-only fallback reads from |
+| `config.js` | The save helper's address and the Google sign-in client id (both public) |
 | `worker/` | The save helper and its [setup steps](worker/README.md) |
 | `scripts/merge.py` | Folds a night's results into the data (new, still listed, gone, price changes) |
 | `scripts/geo.py` | Map pins, drive-time estimates and the 10-minute / just-outside split |
 | `scripts/seed_listings.py` | The first manual search (14 Oct 2026), kept for history |
-| `test/` | A fake GitHub plus tests for the save helper, and a local preview (`node test/dev.mjs`) |
+| `test/` | Fake GitHub + Google, tests for the save helper, and a local preview (`node test/dev.mjs`) |
 
-On the `data` branch:
+In `DOli4/rental-hunt-data` (branch `data`):
 
 | File | Written by | What it is |
 |---|---|---|

@@ -1,7 +1,9 @@
 # Rental Hunt – daily search routine
 
 You are refreshing Dieter's rental site: https://doli4.github.io/rental-hunt/
-Everything the site shows lives as files on the `data` branch of https://github.com/DOli4/rental-hunt.
+Everything the site shows lives as files on the `data` branch of the **private** repo
+https://github.com/DOli4/rental-hunt-data (this session needs read/write access to it). The scripts live in
+the public repo https://github.com/DOli4/rental-hunt.
 Fetch pages one at a time (never parallel bursts). Never click "Show number", never solve or bypass a
 CAPTCHA, never work around a site that blocks you. If a site blocks you, skip it tonight.
 
@@ -17,10 +19,10 @@ CAPTCHA, never work around a site that blocks you. If a site blocks you, skip it
 
 ```bash
 git clone https://github.com/DOli4/rental-hunt.git rh && cd rh
-git clone -b data --single-branch https://github.com/DOli4/rental-hunt.git data
+git clone -b data --single-branch https://github.com/DOli4/rental-hunt-data.git data
 ```
 
-`scripts/merge.py` reads and writes `./data/...`, which is now the `data` branch.
+`scripts/merge.py` reads and writes `./data/...`, which is now the private data repo.
 
 ## 2. Search (WebFetch; the shell usually can't reach these sites)
 
@@ -66,7 +68,7 @@ python3 scripts/merge.py run.json
 
 This updates `data/listings.json`, `data/history/<date>.json`, `data/changed.json` and `data/meta.json`.
 
-## 4. Commit and push the data branch
+## 4. Commit and push the data
 
 ```bash
 cd data

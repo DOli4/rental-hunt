@@ -308,12 +308,12 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 .mapSide:not([hidden]){animation:drawerIn .3s cubic-bezier(.2,.8,.2,1)}
 .pop{animation:popIn .22s cubic-bezier(.2,1.3,.4,1)}
 @keyframes popIn{from{transform:scale(.92);opacity:0}}
-/* --- who's this (name + passcode) --- */
+/* --- sign-in panel and name chip --- */
 .whoChip{cursor:pointer;font:inherit;font-size:11px}
 .whoChip i{background:var(--fuchsia);box-shadow:0 0 8px var(--fuchsia);animation:none}
 .whoChip.ro i{background:var(--muted);box-shadow:none}
 .whoBox{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)}
-.whoCard{width:min(380px,100%);background:var(--panel);border:1px solid color-mix(in srgb,var(--teal) 35%,var(--line));border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 80px rgba(0,0,0,.5);animation:popIn .25s cubic-bezier(.2,1.3,.4,1)}
+.whoCard{position:static;margin:0;color:inherit;width:min(380px,100%);background:var(--panel);border:1px solid color-mix(in srgb,var(--teal) 35%,var(--line));border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 80px rgba(0,0,0,.5);animation:popIn .25s cubic-bezier(.2,1.3,.4,1)}
 .whoCard h2{font-size:20px} .whoCard h2 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .whoCard p{margin:0;font-size:13px;color:var(--muted)}
 .whoCard .err{color:var(--red);font-size:12px;min-height:16px}
@@ -345,8 +345,8 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
  <section class="shell" aria-label="Overview">
   <div class="topbar">
     <div class="brand">rental<b>hunt</b>&gt;</div>
-    <span class="live" id="liveChip" title="Changes from anyone appear here within seconds"><i></i>Live</span><span class="sync" id="sync">connecting…</span>
-    <button class="live whoChip ro" id="whoChip" type="button" title="Change who you are or add the passcode"><i></i><span id="whoName">View only</span></button>
+    <span class="live" id="liveChip" hidden title="Changes from anyone appear here within seconds"><i></i>Live</span><span class="sync" id="sync">connecting…</span>
+    <button class="live whoChip ro" id="whoChip" type="button" title="Sign in with Google"><i></i><span id="whoName">Sign in</span></button>
     <label class="sel">Area
       <select id="fArea"><option value="core">Within 10 min</option><option value="nearby">Just outside</option><option value="all">Everything</option></select></label>
     <label class="sel">Max
@@ -438,14 +438,14 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 <aside class="drawer" id="drawer" hidden aria-modal="true" role="dialog" aria-labelledby="dTitle"></aside>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden><span class="ti" id="toastI"></span><span class="tt" id="toastT"></span></div>
 <div class="whoBox" id="whoBox" hidden>
-  <form class="whoCard" id="whoForm" role="dialog" aria-modal="true" aria-labelledby="whoTitle">
-    <h2 id="whoTitle">Who's <span>this?</span></h2>
-    <p>Your name shows next to the places you mark and the notes you add. To save anything you also need the passcode Dieter shared with you.</p>
-    <div class="field"><label class="label" for="whoN">Your name</label><input id="whoN" maxlength="40" autocomplete="nickname" placeholder="e.g. Anna" required></div>
-    <div class="field"><label class="label" for="whoP">Passcode</label><input id="whoP" type="password" autocomplete="current-password" placeholder="From Dieter"></div>
+  <dialog class="whoCard" open aria-labelledby="whoTitle">
+    <h2 id="whoTitle">Rental <span>Hunt</span></h2>
+    <p id="whoMsg"></p>
+    <div id="gBtn" style="min-height:44px"></div>
+    <form id="devForm" class="row" hidden><div class="field" style="flex:1"><label class="label" for="devEmail">Dev sign-in (local preview only)</label><input id="devEmail" type="email" placeholder="anna@x.com" required></div><button class="btn primary">Sign in</button></form>
+    <div class="row" id="whoOut" hidden style="justify-content:flex-end"><button type="button" class="btn" id="whoSignOut">Sign out</button><button type="button" class="btn primary" id="whoClose">Close</button></div>
     <div class="err" id="whoErr" role="alert"></div>
-    <div class="row" style="justify-content:flex-end"><button type="button" class="btn" id="whoLook">Just look around</button><button type="submit" class="btn primary" id="whoGo">Let me in</button></div>
-  </form>
+  </dialog>
 </div>
 
 <script>
@@ -462,8 +462,10 @@ const ICON = {
 };
 
 const S = { notesOpen:new Set(), freshNote:null, freshKind:"add", editNote:null, delArm:null, listings:new Map(), track:new Map(), meta:{}, settings:{}, tab:"places", tile:null, mapMode:"all", openId:null, popId:null, sideId:null, flash:new Set(), lastSync:0, gaugesShown:false, listShown:false, prevNums:{}, me:null, pass:"", mode:null, dataSha:null, busy:new Map(), savedAt:new Map(), loaded:false };
-const CFG = Object.assign({ workerUrl:"", rawBase:"" }, window.RENTAL_CONFIG||{}); CFG.workerUrl=CFG.workerUrl.replace(/\/+$/,"");
-try{ S.me=localStorage.getItem("rh-name")||null; S.pass=localStorage.getItem("rh-pass")||""; }catch(e){}
+const CFG = { workerUrl:"", googleClientId:"", ...globalThis.RENTAL_CONFIG };
+while(CFG.workerUrl.endsWith("/")) CFG.workerUrl=CFG.workerUrl.slice(0,-1);
+S.session=""; S.email="";
+try{ S.session=localStorage.getItem("rh-session")||""; S.me=S.session?localStorage.getItem("rh-name"):null; S.email=localStorage.getItem("rh-email")||""; }catch(e){}
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const rand = n => "R" + Number(n).toLocaleString("en-ZA").replace(/[, ]/g," ");
@@ -750,7 +752,8 @@ function card(l){
   </article>`;
 }
 function renderList(){
-  if(!S.loaded){ $("view").innerHTML=`<div class="empty"><h3>Loading the shared list…</h3>Places, saved marks and notes appear once the store answers.</div>`; return; }
+  if(!S.session){ $("view").innerHTML=`<div class="empty"><h3>Sign in to see the places</h3>This list is private. <button class="btn small primary" data-signin>Sign in with Google</button></div>`; return; }
+  if(!S.lastSync){ $("view").innerHTML=`<div class="empty"><h3>Loading the shared list…</h3>Places, saved marks and notes appear once the server answers.</div>`; return; }
   if(!S.listings.size){ $("view").innerHTML=`<div class="empty"><h3>No places yet</h3>The 6pm search adds places here every evening.</div>`; return; }
   const arr=listFor(S.tab);
   if(!arr.length){ const why=S.tab==="shortlist"?"Tap ♡ Interested on a place to add it to your shortlist.":S.tab==="new"?"Nothing new came in on the last search.":S.tab==="gone"?"Every place is still listed.":"No places match these filters. Try a higher max, another area, or switch a filter off.";
@@ -760,6 +763,7 @@ function renderList(){
   putTA($("view"),keepN);
 }
 function renderHeader(){
+  if(!S.session){ $("updated").textContent="Private list · sign in to see the places"; return; }
   $("updated").innerHTML = S.meta.last_run ? `Data from the <span class="num">${esc(S.meta.last_run)}</span> search · 3 bed · 2 bath · ≤ R16 000 · within ~10 min of TecWise or Drive` : (S.loaded?"No search results yet":"Loading listings…");
 }
 function renderSide(){
@@ -858,8 +862,8 @@ function renderDrawer(first){
 // body defaults to {op:"set", fields:patch}; notes pass their own op. Server-side ops mean two people
 // saving at once never overwrite each other.
 async function saveTrack(id, patch, body){
-  if(!CFG.workerUrl || S.mode==="raw"){ toast("Saving is off right now, this is a read-only copy","error"); return false; }
-  if(!S.pass || !S.me){ openWho("Add your name and the passcode to save changes."); return false; }
+  if(!S.session){ openWho("Sign in to save changes."); return false; }
+  const sess=S.session;
   const prev=tr(id), cur=plain(prev)||{};
   S.track.set(id,plain(Object.assign({},cur,patch,{updatedAt:new Date().toISOString(),updatedBy:S.me}))); render();
   S.busy.set(id,(S.busy.get(id)||0)+1);
@@ -867,11 +871,12 @@ async function saveTrack(id, patch, body){
   try{
     let r;
     for(let attempt=0; attempt<2 && !r; attempt++){
-      try{ r=await fetch(CFG.workerUrl+"/op",{method:"POST",headers:{"Content-Type":"application/json","X-Passcode":encodeURIComponent(S.pass),"X-Name":encodeURIComponent(S.me)},body:JSON.stringify(plain(Object.assign({id},body||{op:"set",fields:patch}))),signal:AbortSignal.timeout(15000)}); }
+      try{ r=await fetch(CFG.workerUrl+"/op",{method:"POST",headers:{"Content-Type":"application/json",...authHeaders()},body:JSON.stringify(plain({id,...(body||{op:"set",fields:patch})})),signal:AbortSignal.timeout(15000)}); }
       catch(e){ if(attempt===0) await new Promise(res=>setTimeout(res,700)); }
     }
+    if(S.session!==sess) return false; // signed out while this was on its way
     if(!r) return undo("Couldn't reach the save helper. Check your connection and try again.");
-    if(r.status===401){ S.pass=""; try{localStorage.removeItem("rh-pass")}catch(e){} updWho(); undo("Wrong passcode"); openWho("That passcode didn't work. Check it with Dieter."); return false; }
+    if(r.status===401||r.status===403){ undo(r.status===403?"You're not on the invite list any more":"Please sign in again"); signOut(r.status===403?"You're not on the invite list any more. Ask Dieter to add you.":"Your sign-in expired. Please sign in again."); return false; }
     const j=await r.json().catch(()=>({}));
     if(!r.ok || !j.entry) return undo(`Couldn't save: ${j.error||"error "+r.status}`);
     if(S.busy.get(id)===1) S.track.set(id,j.entry); S.savedAt.set(id,Date.now()); S.lastSync=Date.now(); updSync(); render();
@@ -896,6 +901,7 @@ document.addEventListener("click", async e=>{
     const log=(tr(id).log||[]).map(n=>n.id===nid ? Object.assign({},n,{text:v.slice(0,2000),edited:new Date().toISOString(),editedBy:S.me||null}) : n);
     const rc=se.getBoundingClientRect(); S.editNote=null; S.freshNote=nid; S.freshKind="edit"; setTimeout(()=>{ if(S.freshNote===nid) S.freshNote=null; },1500); noteEdited(rc); if(await saveTrack(id,{log},{op:"note.edit",nid,text:v.slice(0,2000)})) toast("Note updated","edit"); return; }
   if(el.closest(".notesBox")) return;
+  if(el.closest("[data-signin]")){ openWho(""); return; }
   const op=el.closest("[data-open]"); if(op){ openDrawer(op.dataset.open); return; }
   const pop=el.closest("[data-pop]"); if(pop){ S.popId = S.popId===pop.dataset.pop ? null : pop.dataset.pop; renderMap(); return; }
   if(el.closest("[data-closepop]")){ S.popId=null; renderMap(); return; }
@@ -961,82 +967,121 @@ const _render=render; render=function(){ _render(); countUps(); };
   set(m); bt.addEventListener("click",()=>{ m=!m; set(m); try{ localStorage.setItem("rh-legend-min",m?"1":"0"); }catch(e){} });
 })();
 
-/* ---------- data: the save helper when it's reachable, else the raw files on GitHub (read-only) ---------- */
+/* ---------- data: only through the save helper, only once signed in ---------- */
+const authHeaders = () => ({ Authorization: "Bearer "+S.session });
 async function fetchData(){
-  if(CFG.workerUrl){ try{ const r=await fetch(CFG.workerUrl+"/data"+(S.dataSha&&S.mode==="live"?"?v="+encodeURIComponent(S.dataSha):""),{cache:"no-store"}); if(r.ok) return [await r.json(),"live"]; }catch(e){} }
-  if(CFG.rawBase && S.mode!=="live"){ const get=f=>fetch(CFG.rawBase+f,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null);
-    const [listings,track,meta,settings]=await Promise.all(["listings.json","track.json","meta.json","settings.json"].map(get));
-    if(listings) return [{listings,track,meta,settings},"raw"]; }
+  if(!CFG.workerUrl || !S.session) return [null,null];
+  try{ const r=await fetch(CFG.workerUrl+"/data"+(S.dataSha?"?v="+encodeURIComponent(S.dataSha):""),{cache:"no-store",headers:authHeaders()});
+    if(r.ok) return [await r.json(),null];
+    if(r.status===401||r.status===403) return [null,r.status]; }catch(e){ console.warn("[rental] poll failed", e); }
   return [null,null];
 }
 // A poll that left before one of our saves landed would undo it on screen, so keep our copy for a few seconds.
 // Returns true when it did, so the caller re-reads the full snapshot next time instead of trusting its sha.
-function applyTrack(obj, started){
+function applyTrack(obj, started, quiet){
   const before=S.track, next=new Map(Object.entries(obj||{}).map(([k,v])=>[k,plain(v)])); let kept=false;
   for(const [id,at] of S.savedAt){ if(at<Date.now()-60000) S.savedAt.delete(id); }
   for(const id of new Set([...S.busy.keys(),...S.savedAt.keys()])){ if(S.busy.has(id) || S.savedAt.get(id)>started-8000){ const mine=before.get(id); if(mine){ next.set(id,mine); kept=true; } } }
   S.track=next;
-  if(!S.loaded || S.mode==="raw") return kept;
-  for(const [id,t] of S.track){ const o=before.get(id)||{}; if(t.updatedBy && t.updatedBy!==S.me && (t.status!==o.status || t.note!==o.note || t.phone!==o.phone || (t.log||[]).length>(o.log||[]).length)){
-    const l=S.listings.get(id); S.flash.add(id); setTimeout(()=>{ S.flash.delete(id); },2600);
-    const who=t.updatedBy, newNote=(t.log||[]).length>(o.log||[]).length ? (t.log||[])[(t.log||[]).length-1] : null;
-    if(l && newNote && t.status===o.status) toast(`${who} added a note on ${l.suburb}: “${String(newNote.text).slice(0,60)}${String(newNote.text).length>60?"…":""}”`,"partner");
-    else if(l) toast(t.status!==o.status ? `${who} marked ${l.type.toLowerCase()} in ${l.suburb} as ${STATUS_LABEL[t.status||"new"].toLowerCase()}` : `${who} updated ${l.type.toLowerCase()} in ${l.suburb}`,"partner");
-    if(SHORT.includes(t.status) && !SHORT.includes(o.status)){ const m=document.querySelector(`.card[data-id="${CSS.escape(id)}"] .heart`); if(m) hearts(m.getBoundingClientRect()); } } }
+  if(!quiet){ for(const [id,t] of S.track) partnerChanged(id, t, before.get(id)||{}); } // first load after sign-in: nothing is "new" yet
   return kept;
+}
+// Someone else changed a place: flash it, say what they did, and burst hearts if they shortlisted it.
+function partnerChanged(id, t, o){
+  const logN=(t.log||[]).length, oldN=(o.log||[]).length;
+  if(!t.updatedBy || t.updatedBy===S.me) return;
+  if(t.status===o.status && t.note===o.note && t.phone===o.phone && logN<=oldN) return;
+  const l=S.listings.get(id); S.flash.add(id); setTimeout(()=>{ S.flash.delete(id); },2600);
+  if(!l) return;
+  const who=t.updatedBy;
+  if(logN>oldN && t.status===o.status){
+    const text=String(t.log[logN-1].text);
+    toast(`${who} added a note on ${l.suburb}: “${text.slice(0,60)}${text.length>60?"…":""}”`,"partner");
+  } else if(t.status===o.status){
+    toast(`${who} updated ${l.type.toLowerCase()} in ${l.suburb}`,"partner");
+  } else {
+    toast(`${who} marked ${l.type.toLowerCase()} in ${l.suburb} as ${STATUS_LABEL[t.status||"new"].toLowerCase()}`,"partner");
+  }
+  if(SHORT.includes(t.status) && !SHORT.includes(o.status)){ const m=document.querySelector(`.card[data-id="${CSS.escape(id)}"] .heart`); if(m) hearts(m.getBoundingClientRect()); }
 }
 let loading=false;
 async function load(){
-  if(loading) return; loading=true; const started=Date.now();
+  if(loading || !S.session) return;
+  loading=true;
+  const started=Date.now(), sess=S.session;
   try{
-    const [d,mode]=await fetchData();
-    if(!d){ if(!S.loaded){ S.loaded=true; render(); banner("Couldn't load places right now. It keeps trying every few seconds."); } else $("sync").textContent="reconnecting…"; return; }
-    S.lastSync=Date.now(); updSync();
-    if(mode!==S.mode){ S.mode=mode; updWho(); }
+    const [d,denied]=await fetchData();
+    if(S.session!==sess) return;
+    if(denied){ signOut(denied===403?"You're not on the invite list any more. Ask Dieter to add you.":"Your sign-in expired. Please sign in again."); return; }
+    if(!d){
+      if(S.listings.size){ $("sync").textContent="reconnecting…"; }
+      else { banner(CFG.workerUrl?"Couldn't load places right now. It keeps trying every few seconds.":"The site's server isn't set up yet."); }
+      return;
+    }
+    banner(""); S.lastSync=Date.now(); updSync();
     if(d.same) return;
     // listings come from scraped sites: force numeric fields to numbers before they meet any template
     const NUM=["price","beds","baths","size_m2","min_tecwise","min_drive","lat","lng"];
+    const first=!S.listings.size;
     S.listings=new Map(((d.listings&&d.listings.listings)||[]).map(l=>{ for(const k of NUM) l[k]=l[k]==null||l[k]===""?null:Number(l[k]); return [String(l.id),l]; }));
     S.meta=d.meta||{}; S.settings=d.settings||{};
-    S.dataSha=applyTrack(d.track,started) ? null : (d.sha||null);
-    const first=!S.loaded; S.loaded=true; updWho(); render();
+    S.dataSha=applyTrack(d.track,started,first) ? null : (d.sha||null);
+    S.loaded=true; render();
     if(first && location.hash.length>1){ const h=location.hash.slice(1); const hit=[...S.listings.keys()].find(k=>k.replace(/[^\w.~-]/g,"_")===h); if(hit) openDrawer(hit); }
-    if(first){ let seen=false; try{ seen=!!localStorage.getItem("rh-seen"); }catch(e){} if(!S.me && !seen && mode==="live") openWho(""); }
   } finally { loading=false; }
 }
 setInterval(()=>{ if(document.visibilityState==="visible") load(); },15000);
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") load(); });
 
-/* ---------- who's this: a name for "updatedBy" and notes, plus the shared passcode ---------- */
+/* ---------- sign-in: Google, then the save helper checks the invite list and hands back a 30-day session ---------- */
 function banner(msg){ $("banner").hidden=!msg; $("banner").textContent=msg||""; }
 function updWho(){
-  const ok=!!(S.me&&S.pass);
-  $("whoName").textContent=S.me?(ok?S.me:S.me+" · view only"):"View only"; $("whoChip").classList.toggle("ro",!ok);
-  $("liveChip").lastChild.textContent=S.mode==="raw"?"Read-only copy":"Live";
-  banner(S.mode==="raw"?"Showing a saved copy, which can be a few minutes old. Saving is off right now."
-    : S.mode==="live"&&!ok?"View only. Tap your name at the top and add the passcode to mark places and add notes.":"");
+  const on=!!S.session;
+  $("whoName").textContent=on?S.me:"Sign in"; $("whoChip").classList.toggle("ro",!on); $("liveChip").hidden=!on;
+  $("whoChip").title=on?"Signed in as "+S.me+" · tap to sign out":"Sign in with Google";
 }
-function openWho(msg){ $("whoN").value=S.me||""; $("whoP").value=""; $("whoErr").textContent=msg||""; $("whoBox").hidden=false; ($("whoN").value?$("whoP"):$("whoN")).focus(); }
-function closeWho(){ $("whoBox").hidden=true; try{ localStorage.setItem("rh-seen","1"); }catch(e){} }
+function remember(k,v){ try{ if(v) localStorage.setItem(k,v); else localStorage.removeItem(k); }catch(e){ console.warn("[rental] browser storage unavailable", e); } }
+function signOut(msg){
+  S.session=""; S.me=null; S.email=""; ["rh-session","rh-name","rh-email"].forEach(k=>remember(k,""));
+  S.listings=new Map(); S.track=new Map(); S.dataSha=null; S.meta={}; S.lastSync=0; closeDrawer(); render(); updWho(); openWho(msg||"");
+}
+let gis=null;
+function showGoogle(){
+  if(!CFG.googleClientId){ $("whoErr").textContent="Sign-in isn't set up yet."; return; }
+  if(CFG.googleClientId==="dev") return; // local preview uses the dev form instead
+  gis=gis||new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src="https://accounts.google.com/gsi/client"; sc.async=true; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); })
+    .then(()=>google.accounts.id.initialize({client_id:CFG.googleClientId, callback:r=>signIn(r.credential), ux_mode:"popup"}));
+  gis.then(()=>google.accounts.id.renderButton($("gBtn"),{theme:"filled_black",size:"large",shape:"pill",text:"signin_with"}))
+     .catch(()=>{ gis=null; $("whoErr").textContent="Couldn't load Google sign-in. Check your connection and try again."; });
+}
+async function signIn(credential){
+  $("whoErr").textContent="Signing in…";
+  try{
+    const r=await fetch(CFG.workerUrl+"/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({credential})});
+    const j=await r.json().catch(()=>({}));
+    if(r.status===403){ $("whoErr").textContent=`${j.email||"That account"} isn't on the invite list. Ask Dieter to add it.`; return; }
+    if(!r.ok || !j.session){ $("whoErr").textContent=j.error||"Sign-in didn't work, try again."; return; }
+    S.session=j.session; S.me=j.name; S.email=j.email; remember("rh-session",j.session); remember("rh-name",j.name); remember("rh-email",j.email);
+    $("whoBox").hidden=true; $("whoErr").textContent=""; updWho(); S.dataSha=null; render(); toast(`Hi ${j.name}`,"info"); load();
+  }catch(e){ console.warn("[rental] sign-in failed", e); $("whoErr").textContent="Couldn't reach the site's server. Try again in a minute."; }
+}
+function openWho(msg){
+  const on=!!S.session;
+  const who=S.email ? `${S.me} (${S.email})` : S.me;
+  $("whoMsg").textContent=on?`Signed in as ${who}.`:"Sign in with Google to see the places and save hearts and notes. Only people Dieter has invited can get in.";
+  $("gBtn").hidden=on; $("whoOut").hidden=!on; $("devForm").hidden=on||CFG.googleClientId!=="dev";
+  $("whoErr").textContent=msg||""; $("whoBox").hidden=false;
+  if(on) $("whoClose").focus(); else showGoogle();
+}
+function closeWho(){ $("whoBox").hidden=true; }
 $("whoChip").addEventListener("click",()=>openWho(""));
-$("whoLook").addEventListener("click",closeWho);
+$("whoClose").addEventListener("click",closeWho);
+$("whoSignOut").addEventListener("click",()=>{ signOut(""); toast("Signed out","info"); });
 $("whoBox").addEventListener("click",e=>{ if(e.target.id==="whoBox") closeWho(); });
 $("whoBox").addEventListener("keydown",e=>{ if(e.key==="Escape"){ e.stopPropagation(); closeWho(); } });
-$("whoForm").addEventListener("submit",async e=>{
-  e.preventDefault();
-  const n=$("whoN").value.replace(/\s+/g," ").trim().slice(0,40), p=$("whoP").value;
-  if(!n){ $("whoErr").textContent="Type your name first"; $("whoN").focus(); return; }
-  if(p && CFG.workerUrl){
-    // Check the passcode: a right one gets past the 401 and is then turned away (400) for the empty request.
-    $("whoGo").disabled=true; let st=0;
-    try{ st=(await fetch(CFG.workerUrl+"/op",{method:"POST",headers:{"Content-Type":"application/json","X-Passcode":encodeURIComponent(p),"X-Name":encodeURIComponent(n)},body:"{}"})).status; }catch(e){}
-    $("whoGo").disabled=false;
-    if(st===401){ $("whoErr").textContent="That passcode isn't right"; $("whoP").select(); return; }
-  }
-  S.me=n; if(p) S.pass=p;
-  try{ localStorage.setItem("rh-name",n); if(p) localStorage.setItem("rh-pass",p); }catch(e){}
-  closeWho(); updWho(); render(); toast(S.pass?`Hi ${n}, you can save now`:`Hi ${n}`,"info");
-});
+// Local preview only (googleClientId "dev"): the mock in test/dev.mjs plays Google.
+$("devForm").addEventListener("submit",async e=>{ e.preventDefault();
+  try{ signIn(await (await fetch(CFG.devTokenUrl+"?email="+encodeURIComponent($("devEmail").value.trim()))).text()); }catch(err){ console.warn("[rental] dev sign-in failed", err); $("whoErr").textContent="Dev sign-in failed"; } });
 
 /* ---------- spotlight glow: one pointer listener, once per frame: read every on-screen card's box, then write ---------- */
 (function(){ if(!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
@@ -1050,7 +1095,7 @@ $("whoForm").addEventListener("submit",async e=>{
   new MutationObserver(kick).observe($("view"),{childList:true}); // cards get rebuilt on every render
 })();
 
-updWho(); load();
+updWho(); if(S.session) load(); else { S.loaded=true; render(); openWho(""); }
 </script>
 </body>
 </html>

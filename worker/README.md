@@ -1,70 +1,79 @@
 # The save helper (Cloudflare Worker)
 
-The website is just files on GitHub Pages, so on its own it can't save anything. This little helper
-runs on Cloudflare's free plan. It holds a GitHub key that can only touch this one repo, checks the
-passcode, and turns every heart, status or note into a commit on the `data` branch.
+The website is plain files on GitHub Pages, so it can't keep secrets or save anything itself. This small
+helper runs on Cloudflare's free plan. It:
 
-Takes about 15 minutes, once. You'll pick a **passcode** along the way: that's what you send your
-partner and friends together with the link.
+- lets people **sign in with Google** and checks them against your **invite list**,
+- reads the places, marks and notes from the **private** repo `DOli4/rental-hunt-data`,
+- turns every heart, status or note into a commit there, with the person's name on it.
 
-## Step 1: a GitHub key that can only touch this repo
+One-off setup: about 20 minutes. You need a GitHub key, a Google "client ID" and the worker itself.
 
-1. On github.com, click your picture (top right) → **Settings**.
-2. Scroll the left menu all the way down → **Developer settings**.
-3. **Personal access tokens** → **Fine-grained tokens** → **Generate new token**.
-4. Fill in:
+## Step 1: a GitHub key that can only touch the data repo
+
+1. On github.com: your picture (top right) → **Settings** → bottom of the left menu → **Developer settings**.
+2. **Personal access tokens** → **Fine-grained tokens** → **Generate new token**.
+3. Fill in:
    - **Token name**: `rental-hunt save helper`
-   - **Expiration**: 1 year (put a reminder in your calendar a week before, to make a new one)
-   - **Repository access**: **Only select repositories** → pick `rental-hunt`
-   - **Permissions** → **Repository permissions** → **Contents** → **Read and write**.
-     Leave everything else as it is (GitHub adds "Metadata: read-only" by itself, that's fine).
-5. **Generate token** and **copy it** (it starts with `github_pat_`). GitHub shows it only once. Keep the
-   tab open until step 2 is done.
+   - **Expiration**: 1 year (calendar reminder a week before, to make a new one)
+   - **Repository access**: **Only select repositories** → `rental-hunt-data`
+   - **Permissions** → **Repository permissions** → **Contents** → **Read and write**. Nothing else.
+4. **Generate token**, copy it (starts with `github_pat_`). Keep the tab open until step 3.
 
-## Step 2: the helper on Cloudflare
+## Step 2: a Google sign-in "client ID"
 
-1. Go to https://dash.cloudflare.com/sign-up and make a free account (or log in).
-2. Left menu → **Compute (Workers)** → **Workers & Pages** → **Create** → **Create Worker**
-   (pick "Start with Hello World" if it asks).
-3. Name it `rental-hunt` → **Deploy**.
-4. Click **Edit code**. Delete everything in the editor, paste the whole of
-   [`worker.js`](worker.js) from this folder, then **Deploy** (top right).
-5. Go back to the worker → **Settings** → **Variables and Secrets** → **Add**, five times:
+1. Go to https://console.cloud.google.com/ and sign in with your Google account.
+2. Top bar → project picker → **New project** → name `rental-hunt` → **Create**, then select it.
+3. Search bar → **Google Auth Platform** → **Get started**:
+   - App name `Rental Hunt`, support email = yours → **Next**
+   - Audience **External** → **Next** → contact email = yours → **Next** → agree → **Create**.
+4. Left menu **Audience** → **Publish app** → **Confirm**. (It only asks for name + email, so Google
+   doesn't need to review it. Without this, only "test users" you add by hand can sign in.)
+5. Left menu **Clients** → **Create client**:
+   - Application type **Web application**, name `rental-hunt site`
+   - **Authorised JavaScript origins** → **Add URI** → `https://doli4.github.io`
+   - **Create**.
+6. Copy the **Client ID** (looks like `1234-abc.apps.googleusercontent.com`) and send it to Claude.
+   It isn't a secret; it goes in the website's `config.js`.
 
-   | Type | Name | Value |
-   |---|---|---|
-   | Text | `REPO` | `DOli4/rental-hunt` |
-   | Text | `BRANCH` | `data` |
-   | Text | `ALLOWED_ORIGIN` | `https://doli4.github.io` |
-   | Secret | `GITHUB_TOKEN` | the `github_pat_…` key from step 1 |
-   | Secret | `PASSCODE` | a passcode you make up: **four random words**, e.g. `velvet-kettle-orbit-lantern` |
+## Step 3: the worker
 
-   Click **Deploy** after adding them.
-   The helper waits a second after every wrong passcode, so a long passcode can't realistically be guessed.
-6. At the top of the worker page you'll see its address, like
-   `https://rental-hunt.<your-name>.workers.dev`. Copy it.
+First make sure the Client ID from step 2 is in `wrangler.toml` after `GOOGLE_CLIENT_ID =` (Claude does
+this when you send it). Then, in a terminal, from this `worker` folder:
 
-## Step 3: tell the site where the helper lives
+```
+cd "$env:USERPROFILE\OneDrive\Desktop\rental-hunt\worker"
+npx wrangler login
+npx wrangler deploy
+```
 
-Send that address to Claude ("the worker URL is …"), or do it yourself: on GitHub open `config.js` on
-the `main` branch → pencil icon → put the address between the quotes after `workerUrl:` → **Commit changes**.
-A minute later the site shows **Live** and anyone with the passcode can save.
+`login` opens a browser: sign in to Cloudflare and click **Allow**. `deploy` prints the worker's
+address (`https://rental-hunt.<your-name>.workers.dev`); send it to Claude.
+
+Then the three secrets. Each command asks you to paste a value; nobody else ever sees them:
+
+```
+npx wrangler secret put GITHUB_TOKEN
+npx wrangler secret put ALLOWED_EMAILS
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" | npx wrangler secret put SESSION_SECRET
+```
+
+- `GITHUB_TOKEN`: the `github_pat_…` key from step 1.
+- `ALLOWED_EMAILS`: the invite list, the Google emails allowed in, separated by commas,
+  e.g. `you@gmail.com, partner@gmail.com`.
+- `SESSION_SECRET`: the third line makes a random one for you; nothing to paste.
 
 ## Later
 
-- **Change the passcode**: Cloudflare → Workers & Pages → `rental-hunt` → Settings → Variables and
-  Secrets → `PASSCODE` → edit → Deploy. Everyone gets asked for the new one on their next save.
-- **Renew the GitHub key** when it expires: repeat step 1, then replace `GITHUB_TOKEN` the same way.
-- **Check it works**: open `https://rental-hunt.<your-name>.workers.dev/data` in a browser; you should
-  see a page of text starting with `{"listings":`.
-
-## For people who use Wrangler
-
-`wrangler.toml` is next to this file: `npx wrangler deploy`, then
-`npx wrangler secret put GITHUB_TOKEN` and `npx wrangler secret put PASSCODE`.
+- **Invite or remove someone**: Cloudflare dashboard → **Workers & Pages** → `rental-hunt` →
+  **Settings** → **Variables and Secrets** → `ALLOWED_EMAILS` → edit → **Deploy**. Removing an email locks
+  that person out straight away.
+- **Sign everyone out** (e.g. a lost phone): replace `SESSION_SECRET` the same way (any new long random text).
+- **Renew the GitHub key** when it expires: repeat step 1, then `npx wrangler secret put GITHUB_TOKEN`.
+- **Check it's up**: open `https://rental-hunt.<your-name>.workers.dev/data`; it should say `please sign in`.
 
 ## Testing it locally
 
-From the repo root: `node test/worker.test.mjs` runs the helper against a fake GitHub and fires two
-dozen saves from two people at the same time to check none get lost. `node test/dev.mjs` serves the
-whole site against the same fake (passcode `test-pass`).
+From the repo root: `node test/worker.test.mjs` runs the helper against a fake GitHub and a fake Google
+(forged and uninvited sign-ins, two dozen saves from two people at once). `node test/dev.mjs` serves the
+whole site against the same fakes; sign in with the dev form as `anna@x.com` or `dieter@x.com`.

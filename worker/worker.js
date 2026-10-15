@@ -1,7 +1,9 @@
-// Rental Hunt save helper: a Cloudflare Worker that reads the data branch and commits people's changes.
-// Secrets: GITHUB_TOKEN, PASSCODE.  Vars: REPO ("owner/rental-hunt"), BRANCH ("data"), ALLOWED_ORIGIN
-// (comma-separated; http://localhost:* and http://127.0.0.1:* are always allowed for testing).
-// GITHUB_API is optional and only used by the local test to point at a mock.
+// Rental Hunt save helper: a Cloudflare Worker that lets invited people sign in with Google, reads the
+// private data repo for them and commits their changes.
+// Secrets: GITHUB_TOKEN, SESSION_SECRET.  Vars: REPO ("owner/rental-hunt-data"), BRANCH ("data"),
+// GOOGLE_CLIENT_ID, ALLOWED_EMAILS (the invite list, comma-separated), ALLOWED_ORIGIN (comma-separated;
+// http://localhost:* and http://127.0.0.1:* are always allowed for testing).
+// GITHUB_API and GOOGLE_JWKS_URL are optional and only used by the local tests to point at mocks.
 
 const ID_RE = /^[A-Za-z0-9._~-]+$/;
 const STATUSES = ["new", "interested", "contacted", "viewing", "applied", "no"];
@@ -18,7 +20,8 @@ export default {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     const { pathname, searchParams } = new URL(req.url);
     try {
-      if (req.method === "GET" && pathname === "/data") return await getData(env, cors, searchParams.get("v"));
+      if (req.method === "POST" && pathname === "/login") return await postLogin(req, env, cors);
+      if (req.method === "GET" && pathname === "/data") { await currentUser(req, env); return await getData(env, cors, searchParams.get("v")); }
       if (req.method === "POST" && pathname === "/op") return await postOp(req, env, cors);
       return json({ error: "not found" }, 404, cors);
     } catch (e) {
@@ -36,7 +39,7 @@ function corsHeaders(req, env) {
   return {
     "Access-Control-Allow-Origin": ok ? origin : allowed[0] || "null",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, X-Passcode, X-Name",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
@@ -112,17 +115,81 @@ async function getData(env, cors, since) {
   return json(since && since === s.sha ? { same: true, sha: s.sha } : s.body, 200, cors);
 }
 
-/* ---------- POST /op ---------- */
-async function sameSecret(a, b) {
-  // Hash both so the compare is fixed-length, then compare every byte (no early exit).
-  const enc = new TextEncoder();
-  const [x, y] = await Promise.all([a, b].map(v => crypto.subtle.digest("SHA-256", enc.encode(String(v)))));
-  const p = new Uint8Array(x), q = new Uint8Array(y);
-  let diff = 0;
-  for (let i = 0; i < p.length; i++) diff |= p[i] ^ q[i];
-  return diff === 0;
+/* ---------- sign-in: a Google ID token is swapped for our own signed 30-day session ---------- */
+const SESSION_DAYS = 30;
+const enc = new TextEncoder();
+function b64url(buf) {
+  let s = btoa(String.fromCodePoint(...new Uint8Array(buf))).replaceAll("+", "-").replaceAll("/", "_");
+  while (s.endsWith("=")) s = s.slice(0, -1);
+  return s;
 }
-const header = (req, k) => { try { return decodeURIComponent(req.headers.get(k) || ""); } catch { return ""; } };
+const unb64url = s => Uint8Array.from(atob(String(s).replaceAll("-", "+").replaceAll("_", "/")), c => c.codePointAt(0));
+const readJson = s => JSON.parse(new TextDecoder().decode(unb64url(s)));
+const invited = (env, email) => String(env.ALLOWED_EMAILS || "").toLowerCase().split(/[\s,;]+/).includes(String(email).toLowerCase());
+
+let jwks = null; // Google's signing keys, cached an hour (they rotate rarely)
+async function googleKey(env, kid) {
+  for (let fresh = 0; fresh < 2; fresh++) {
+    if (!jwks || fresh || Date.now() - jwks.at > 3600e3) {
+      const r = await fetch(env.GOOGLE_JWKS_URL || "https://www.googleapis.com/oauth2/v3/certs");
+      if (!r.ok) throw fail(502, "couldn't reach Google");
+      jwks = { keys: (await r.json()).keys || [], at: Date.now() };
+    }
+    const k = jwks.keys.find(x => x.kid === kid);
+    if (k) return k;
+  }
+  return null;
+}
+// Checks a Google ID token: Google's signature, meant for our client id, not expired, verified email.
+export async function verifyGoogle(token, env, now = Date.now()) {
+  if (!env.GOOGLE_CLIENT_ID) throw fail(500, "GOOGLE_CLIENT_ID isn't set up");
+  const bad = () => fail(401, "sign-in didn't work, try again");
+  const [h, p, sig] = String(token || "").split(".");
+  let head, claims, sigBytes;
+  try { head = readJson(h); claims = readJson(p); sigBytes = unb64url(sig); } catch { throw bad(); }
+  if (!head || !claims || typeof claims !== "object" || head.alg !== "RS256") throw bad();
+  const jwk = await googleKey(env, head.kid);
+  if (!jwk) throw bad();
+  const key = await crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
+  if (!(await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, sigBytes, enc.encode(`${h}.${p}`)))) throw bad();
+  const iss = ["accounts.google.com", "https://accounts.google.com"].includes(claims.iss);
+  if (!iss || claims.aud !== env.GOOGLE_CLIENT_ID || typeof claims.exp !== "number" || claims.exp * 1000 <= now || claims.email_verified !== true || typeof claims.email !== "string") throw bad();
+  return claims;
+}
+async function hmacKey(env) {
+  if (!env.SESSION_SECRET || env.SESSION_SECRET.length < 16) throw fail(500, "SESSION_SECRET isn't set up");
+  return crypto.subtle.importKey("raw", enc.encode(env.SESSION_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
+}
+async function makeSession(env, email, name) {
+  const body = b64url(enc.encode(JSON.stringify({ e: email, n: name, x: Date.now() + SESSION_DAYS * 864e5 })));
+  return `${body}.${b64url(await crypto.subtle.sign("HMAC", await hmacKey(env), enc.encode(body)))}`;
+}
+// Every request: check our signature, the expiry, and that the person is still on the invite list
+// (so taking someone off the list locks them out straight away).
+async function currentUser(req, env) {
+  const [body, sig] = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").split(".");
+  const key = await hmacKey(env);
+  let good = false;
+  try { good = !!sig && await crypto.subtle.verify("HMAC", key, unb64url(sig), enc.encode(body)); } catch { good = false; }
+  if (!good) throw fail(401, "please sign in");
+  const u = readJson(body);
+  if (u.x < Date.now()) throw fail(401, "your sign-in expired, please sign in again");
+  if (!invited(env, u.e)) throw fail(403, "you're not on the invite list any more");
+  return { email: u.e, name: u.n };
+}
+async function postLogin(req, env, cors) {
+  if (env.LIMITER && !(await env.LIMITER.limit({ key: req.headers.get("CF-Connecting-IP") || "?" })).success) return json({ error: "slow down" }, 429, cors);
+  const raw = await req.text();
+  if (raw.length > 10000) throw fail(413, "too much at once");
+  let credential;
+  try { ({ credential } = JSON.parse(raw)); } catch { throw fail(400, "body must be JSON"); }
+  const c = await verifyGoogle(credential, env);
+  if (!invited(env, c.email)) return json({ error: "not invited", email: c.email }, 403, cors);
+  const name = cleanName(c.given_name || c.name || c.email.split("@")[0]);
+  return json({ session: await makeSession(env, c.email, name), name, email: c.email }, 200, cors);
+}
+
+/* ---------- POST /op ---------- */
 const cleanName = s => String(s || "").replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 40) || "Someone";
 function str(v, what) {
   if (typeof v !== "string") throw fail(400, `${what} must be text`);
@@ -184,12 +251,7 @@ async function knownListing(env, id) {
 }
 
 async function postOp(req, env, cors) {
-  // Optional Cloudflare rate-limit binding (see wrangler.toml); caps attempts per IP when present.
-  if (env.LIMITER && !(await env.LIMITER.limit({ key: req.headers.get("CF-Connecting-IP") || "?" })).success) return json({ error: "slow down" }, 429, cors);
-  if (!env.PASSCODE || !(await sameSecret(header(req, "X-Passcode"), env.PASSCODE))) {
-    await new Promise(res => setTimeout(res, 1000)); // makes guessing the passcode one by one slow
-    return json({ error: "wrong passcode" }, 401, cors);
-  }
+  const { name } = await currentUser(req, env); // name comes from the signed session, not the request
   const raw = await req.text();
   if (raw.length > 10000) throw fail(413, "too much at once");
   let body;
@@ -198,7 +260,6 @@ async function postOp(req, env, cors) {
   if (typeof id !== "string" || !ID_RE.test(id)) throw fail(400, "bad listing id");
   const listing = await knownListing(env, id);
   if (!listing) throw fail(400, "no such listing");
-  const name = cleanName(header(req, "X-Name"));
   const place = listing.suburb || id;
 
   // Up to 10 tries: 2 GitHub calls each + 5 for a cold snapshot stays under the free plan's 50 per request.

@@ -1,6 +1,6 @@
-// Where the site reads and saves. workerUrl is the Cloudflare Worker address (see worker/README.md);
-// leave it empty and the site is read-only, reading the data branch straight from GitHub.
+// Where the site signs in and saves. workerUrl is the Cloudflare Worker address and googleClientId the
+// Google sign-in client id (see worker/README.md). Both are public by design; the secrets live on Cloudflare.
 window.RENTAL_CONFIG = {
   workerUrl: "",
-  rawBase: "https://raw.githubusercontent.com/DOli4/rental-hunt/data/",
+  googleClientId: "",
 };

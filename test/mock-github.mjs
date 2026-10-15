@@ -2,9 +2,19 @@
 // Files live in memory, every PUT is a "commit", a stale sha gets 409, and every reply is delayed a
 // little at random so concurrent saves really interleave.
 import http from "node:http";
-import { createHash } from "node:crypto";
+import { createHash, createSign, generateKeyPairSync } from "node:crypto";
 
 const sha1 = s => createHash("sha1").update(s).digest("hex");
+// A stand-in for Google sign-in: our own RSA key, published like Google's, and a token maker.
+const { publicKey, privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const JWK = { ...publicKey.export({ format: "jwk" }), kid: "test-key", alg: "RS256", use: "sig" };
+const b64u = v => Buffer.from(typeof v === "string" ? v : JSON.stringify(v)).toString("base64url");
+export function googleToken(claims, aud = "test-client") {
+  const h = b64u({ alg: "RS256", kid: "test-key", typ: "JWT" });
+  const p = b64u({ iss: "https://accounts.google.com", aud, email_verified: true, exp: Math.floor(Date.now() / 1000) + 3600, ...claims });
+  return `${h}.${p}.${createSign("RSA-SHA256").update(`${h}.${p}`).sign(privateKey, "base64url")}`;
+}
+
 const wait = () => new Promise(r => setTimeout(r, 10 + Math.random() * 60));
 
 export function startMock(port, files) {
@@ -42,12 +52,12 @@ export function startMock(port, files) {
         return send(200, { content: { sha: sha1(state.files[path]) }, commit: { sha: state.head } });
       }
     }
-    // raw.githubusercontent.com stand-in for the site's read-only fallback
-    if (req.method === "GET" && (m = url.pathname.match(/^\/raw\/(.+)$/))) {
-      const c = state.files[m[1]];
-      return c == null ? send(404, "404: Not Found", "text/plain") : send(200, c, "text/plain");
-    }
     if (url.pathname === "/__commits") return send(200, state.commits);
+    if (url.pathname === "/__jwks") return send(200, { keys: [JWK] });
+    if (url.pathname === "/__google-token") { // dev sign-in for test/dev.mjs
+      const email = url.searchParams.get("email") || "";
+      return send(200, googleToken({ email, given_name: email.split("@")[0].replace(/^./, c => c.toUpperCase()) }), "text/plain");
+    }
     send(404, { message: "Not Found" });
   });
   return new Promise(r => server.listen(port, "127.0.0.1", () => r({ server, state })));
