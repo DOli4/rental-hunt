@@ -294,7 +294,7 @@ const safeUrl = u => /^https:\/\//i.test(u||"") ? esc(u) : "#";
 const photosOf = l => (Array.isArray(l.photos)?l.photos:[]).filter(u=>/^https:\/\//i.test(u)).slice(0,12);
 const photoImg = u => `<img class="lp" src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;
 document.addEventListener("error", e=>{ if(e.target.classList && e.target.classList.contains("lp")) e.target.remove(); }, true); // hide broken photos
-function card(l){
+function card(l, i){
   const st=statusOf(l.id), t=tr(l.id), pc=petClass(l), fav=SHORT.includes(st);
   const facts=[`<span class="fact ${pc==="ask"?"pet-ask":pc}">${petLabel(l)}</span>`];
   if(fibreOk(l)) facts.push(`<span class="fact teal">Fibre</span>`);
@@ -305,7 +305,8 @@ function card(l){
   return `<article class="card ${l.active===false?"gone":""}" data-id="${esc(l.id)}" tabindex="0">
     ${isNew(l)?`<span class="newFlag">New</span>`:""}
     ${ph?photoImg(ph):""}
-    <div class="top"><div style="min-width:0"><h3>${esc(l.type)} · ${esc(l.suburb)}</h3><div class="where">${esc(l.address||"Address on request")}</div></div>
+    <div class="cardNo micro"><span>${String((i||0)+1).padStart(2,"0")}</span>${esc(l.type)}</div>
+    <div class="top"><div style="min-width:0"><h3>${esc(l.suburb)}</h3><div class="where">${esc(l.address||"Address on request")}</div></div>
       <div class="price num">${rand(l.price)}<small> pm</small></div></div>
     <div class="facts"><span class="fact"><b>${l.beds}</b> bed</span><span class="fact"><b>${l.baths}</b> bath</span>${l.size_m2?`<span class="fact"><b>${l.size_m2}</b> m²</span>`:""}<span class="fact">TecWise <b>~${l.min_tecwise}</b> min</span><span class="fact">Drive <b>~${l.min_drive}</b> min</span></div>
     <div class="facts">${facts.join("")}</div>
@@ -635,6 +636,9 @@ async function signIn(credential){
 function showHome(msg){
   document.documentElement.classList.add("locked"); $("whoBox").hidden=true; homeMsg(msg);
   $("devForm").hidden=CFG.googleClientId!=="dev"; showGoogle();
+  // local preview only: ?devlogin=anna@x.com signs straight in (for screenshots / tests)
+  const devLogin=CFG.googleClientId==="dev" && new URLSearchParams(location.search).get("devlogin");
+  if(devLogin && !msg){ $("devEmail").value=devLogin; $("devForm").requestSubmit(); }
 }
 function openWho(msg){
   if(!S.session){ showHome(msg); return; }
