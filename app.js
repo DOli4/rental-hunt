@@ -299,36 +299,38 @@ document.addEventListener("error", e=>{ const t=e.target; if(t.classList && t.cl
 // meter bars and a bordered info box. Labels are darker blue, values glow light blue. One SVG (200x300 box) draws
 // the shapes; the card keeps a 2:3 shape so the content boxes (same numbers, in %) line up with it.
 const PET_SHORT={"Pets OK":"OK","No pets":"No","Small pets OK":"Small","Dogs only, no cats":"No cats","Pets: ask":"Ask"};
+// one of four designs, picked from the id so a place keeps its look across refreshes
+const cardVariant=id=>1+[...id].reduce((h,ch)=>(h*31+ch.codePointAt(0))>>>0,7)%4;
 function panelCard(l, i){
   const st=statusOf(l.id), t=tr(l.id), pc=petClass(l), fav=SHORT.includes(st), ph=photosOf(l), notes=(t.log||[]).length;
   const no=String((i||0)+1).padStart(2,"0"), pct=v=>Math.round(Math.max(.04,Math.min(1,v))*100);
+  const variant=cardVariant(l.id);
   const bar=(k,v,f)=>`<div class="pcBar"><span class="micro">${k}</span><b>${v}</b><i><s style="width:${f}%"></s></i></div>`;
   const kv=(k,v,cls)=>`<span><em>${k}</em><b${cls?` class="${cls}"`:""}>${v}</b></span>`;
-  return `<article class="pcard ${l.active===false?"gone":""}" data-id="${esc(l.id)}" tabindex="0" aria-label="${esc(l.type+" in "+l.suburb+", "+rand(l.price)+" a month")}">
+  return `<article class="pcard ${l.active===false?"gone":""}" data-id="${esc(l.id)}" data-v="${variant}" tabindex="0" aria-label="${esc(l.type+" in "+l.suburb+", "+rand(l.price)+" a month")}">
     <svg class="pcShape" viewBox="0 0 200 300" preserveAspectRatio="none" aria-hidden="true">
-      <path class="o" d="M8 0H120L130 10H192L200 18V138L196 142V246L200 250V292L192 300H8L0 292V156L4 152V116L0 112V8Z"/><path class="u" d="M8 0H120L130 10H192L200 18V138L196 142V150H148L138 160H58L48 150H4V116L0 112V8Z"/><path class="d" d="M44 150H58L66 158H136L146 148H196V158H150L140 168H62L52 158H44Z"/>
-      <path class="c" d="M28 144H46L56 154H134L146 142H184"/><circle class="cd" cx="28" cy="144" r="1.6"/><circle class="cd" cx="184" cy="142" r="1.6"/>
-      <path class="t" d="M0 172L8 178V226L0 232Z"/><path class="w" d="M18 22H108L116 30H182V118L172 128H28L18 118Z"/>
-      <g class="x"><circle cx="10" cy="11" r="3"/><path d="M10 5.5v11M4.5 11h11"/><path d="M140 15h4v4h-4zM146 15h4v4h-4zM146 21h4v4h-4z"/></g>
+      <path class="o" d="M8 0H120L130 10H192L200 18V138L196 142V246L200 250V292L192 300H8L0 292V156L4 152V116L0 112V8Z"/><path class="u" d="M8 0H120L130 10H192L200 18V138L196 142V204H150L140 214H60L50 204H0V156L4 152V116L0 112V8Z"/><path class="d" d="M46 204H60L68 212H138L148 202H196V212H152L142 222H64L54 212H46Z"/>
+      <path class="c" d="M28 198H48L58 208H136L148 196H184"/><circle class="cd" cx="28" cy="198" r="1.6"/><circle class="cd" cx="184" cy="196" r="1.6"/>
+      <path class="t" d="M0 226L8 232V276L0 282Z"/><path class="w" d="M14 96H110L118 104H186V180L176 190H24L14 180Z"/>
+      <g class="x"><circle cx="10" cy="11" r="3"/><path d="M10 5.5v11M4.5 11h11"/></g>
       <g class="xb"><path d="M12 276h12v12H12zM12 276l12 12M24 276l-12 12"/><path d="M176 276h12v12h-12zM176 276l12 12M188 276l-12 12"/></g>
     </svg>
     <span class="pcGrain"></span>
     <div class="pcWin">
       ${ph.length?`<img class="lp pcImg" src="${esc(ph[0])}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`:""}
       <span class="pcEmpty micro">No photo yet</span><span class="pcShade"></span>
-      <span class="pcNo micro"><b>${no}</b>${esc(l.type)}</span><span class="pcDate micro">${esc(l.first_seen||"")}</span>
       ${(isNew(l)||st!=="new"||l.note)?`<span class="pcPlate">${isNew(l)?`<span class="micro">New</span>`:""}${st!=="new"?`<span class="micro st-${st}">${STATUS_LABEL[st]}</span>`:""}${l.note?`<span class="micro warn">Check note</span>`:""}</span>`:""}
       <span class="pcTicks"></span>
       ${ph.length?`<span class="pcCount micro">01 / ${String(ph.length).padStart(2,"0")}</span>`:""}
     </div>
+    <div class="pcHead"><div class="pcRow"><span class="pcNo micro"><b>${no}</b>${esc(l.type)}</span><span class="pcDate micro">${esc(l.first_seen||"")}</span></div>
+      <h3>${esc(l.suburb)}</h3><div class="pcWhere micro">${esc(l.address||"Address on request")}</div></div>
     <span class="pcTab micro">${esc(l.source)}</span>
     <div class="pcPriceTag"><i class="pcHatch"></i><span class="pcPrice num">${rand(l.price)}</span><span class="micro">per month</span></div>
     <div class="pcBars">
       ${bar("Rent",pct(l.price/16000)+"%",pct(l.price/16000))}${bar("TecWise","~"+l.min_tecwise+"m",pct(1-l.min_tecwise/20))}${bar("Drive","~"+l.min_drive+"m",pct(1-l.min_drive/20))}
     </div>
     <div class="pcBox">
-      <div class="pcBoxHead"><h3>${esc(l.suburb)}</h3><span class="micro">${esc(l.type)}</span></div>
-      <div class="pcWhere micro">${esc(l.address||"Address on request")}</div>
       <div class="pcKV">${kv("Bed",l.beds)}${kv("Bath",l.baths)}${kv("Size",l.size_m2?l.size_m2+"m²":"—")}${kv("Avail",esc(l.available||"Ask"))}
         ${kv("Pets",esc(PET_SHORT[petLabel(l)]||petLabel(l)),"pet-"+pc)}${kv("Fibre",fibreOk(l)?"Yes":"Ask")}${kv("Security",secOk(l)?"Yes":"Ask")}</div>
     </div>
@@ -397,22 +399,14 @@ function showGal(ph){
   const c=g.querySelector(".galCount"); if(c) c.textContent=`${String(i+1).padStart(2,"0")} / ${String(ph.length).padStart(2,"0")}`;
   g.querySelectorAll("[data-gal]").forEach((b,k)=>b.setAttribute("aria-pressed",String(k===i)));
 }
-// Where the dossier flies out of: the place's card if it's on screen, else the middle of the screen.
-function dossierOrigin(id){
-  const d=$("drawer"), h=document.querySelector(`#view .pcard[data-id="${CSS.escape(id)}"]`), r=h&&h.getBoundingClientRect();
-  const dw=d.offsetWidth||innerWidth, dh=d.offsetHeight||innerHeight;
-  if(r && r.bottom>0 && r.top<innerHeight){
-    d.style.setProperty("--fx",(r.left+r.width/2-innerWidth/2).toFixed(1)+"px"); d.style.setProperty("--fy",(r.top+r.height/2-innerHeight/2).toFixed(1)+"px");
-    d.style.setProperty("--fsx",(r.width/dw).toFixed(3)); d.style.setProperty("--fsy",(r.height/dh).toFixed(3));
-  } else { ["--fx","--fy"].forEach(k=>d.style.setProperty(k,"0px")); d.style.setProperty("--fsx",".25"); d.style.setProperty("--fsy",".25"); }
-  return h;
-}
 function openDrawer(id){
   const d=$("drawer"); S.openId=id; S.popId=null; S.galIdx=0; d.classList.remove("closing");
   document.querySelectorAll("#view .pcard.launch").forEach(c=>c.classList.remove("launch"));
   $("scrim").hidden=false; d.hidden=false; renderDrawer(true); renderMap();
-  const h=dossierOrigin(id); if(h) h.classList.add("launch");
+  const h=document.querySelector(`#view .pcard[data-id="${CSS.escape(id)}"]`); if(h) h.classList.add("launch");
   d.classList.remove("opening"); void d.offsetWidth; d.classList.add("opening");
+  // drop the class once powered up, so re-renders of the drawer don't replay the HUD corners
+  setTimeout(()=>{ if(S.openId===id) d.classList.remove("opening"); },950);
   try{history.replaceState(null,"","#"+id.replace(/[^\w.~-]/g,"_"))}catch(e){}
 }
 function closeDrawer(){
@@ -421,7 +415,7 @@ function closeDrawer(){
   const done=()=>{ if(S.openId) return; d.hidden=true; d.classList.remove("closing","opening"); $("scrim").hidden=true;
     const h=document.querySelector(`#view .pcard[data-id="${CSS.escape(id)}"]`); if(h) h.classList.remove("launch"); };
   if(calmNow() || d.hidden){ done(); return; }
-  dossierOrigin(id); d.classList.remove("opening"); d.classList.add("closing"); setTimeout(done,460);
+  d.classList.remove("opening"); d.classList.add("closing"); setTimeout(done,360);
 }
 function renderDrawer(first){
   const l=S.listings.get(S.openId); if(!l){ closeDrawer(); return; }

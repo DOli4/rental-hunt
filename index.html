@@ -217,7 +217,8 @@ h1,h2,h3{font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
 /* drawer */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20}
 .drawer{--ch:24px;--chamfer:polygon(var(--ch) 0,calc(100% - var(--ch)) 0,100% var(--ch),100% calc(100% - var(--ch)),calc(100% - var(--ch)) 100%,var(--ch) 100%,0 calc(100% - var(--ch)),0 var(--ch));
-  --fromclip:polygon(0 0,100% 0,100% 0,100% 100%,100% 100%,0 100%,0 100%,0 0);
+  --dotclip:polygon(48% 49.7%,52% 49.7%,52% 49.7%,52% 50.3%,52% 50.3%,48% 50.3%,48% 50.3%,48% 49.7%);
+  --lineclip:polygon(var(--ch) 49.7%,calc(100% - var(--ch)) 49.7%,100% 49.7%,100% 50.3%,calc(100% - var(--ch)) 50.3%,var(--ch) 50.3%,0 50.3%,0 49.7%);
   position:fixed;z-index:21;top:50%;left:50%;width:min(1080px,calc(100vw - 32px));height:min(90vh,920px);transform:translate(-50%,-50%);
   background:var(--panel);clip-path:var(--chamfer);display:flex;flex-direction:column}
 .dHead{padding:30px 34px 16px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
@@ -400,7 +401,8 @@ h2[data-n]::before{content:attr(data-n);color:var(--cyan);margin-right:12px;lett
 @media (max-width:1200px){ .pGrid{grid-template-columns:repeat(3,minmax(0,1fr))} }
 @media (max-width:900px){ .pGrid{grid-template-columns:repeat(2,minmax(0,1fr))} }
 @media (max-width:560px){ .pGrid{grid-template-columns:1fr} }
-.pcard{--mb:#2a3854;--mb-top:#1c2840;--mb-line:#3a4d70;--ink:#0a0f1c;--bl:#7a98c6;--bv:#8fe6ff;--pg:#BC6CFF;
+.pcard{--mb:#2a3854;--mb-top:#1c2840;--mb-line:#3a4d70;--ink:#0a0f1c;--box:var(--ink);--bl:#7a98c6;--bv:#8fe6ff;
+  --pg:#BC6CFF;
   position:relative;aspect-ratio:2/3;cursor:pointer;container-type:inline-size;outline:none;transition:opacity .3s,transform .45s cubic-bezier(.16,1,.3,1)}
 .pcShape{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .pcShape path,.pcShape circle{vector-effect:non-scaling-stroke}
@@ -410,47 +412,46 @@ h2[data-n]::before{content:attr(data-n);color:var(--cyan);margin-right:12px;lett
 .pcShape .c{fill:none;stroke:var(--bv);stroke-width:1;opacity:.8;filter:drop-shadow(0 0 2px rgba(0,240,255,.6))}
 .pcShape .cd{fill:var(--bv)}
 .pcShape .t{fill:var(--ink)}
-.pcShape .w{fill:#0b1020;stroke:var(--pg);stroke-width:1.5;filter:drop-shadow(0 0 3px var(--pg)) drop-shadow(0 0 9px rgba(188,108,255,.55));transition:filter .3s}
+.pcShape .w{fill:#0b1020;stroke:var(--pg);stroke-width:1.2;stroke-opacity:.75;transition:stroke-opacity .25s}
 .pcShape .x{fill:none;stroke:rgba(143,166,201,.7);stroke-width:1}
-.pcShape .x path:last-child{fill:rgba(143,166,201,.35)}
 .pcShape .xb{fill:none;stroke:var(--ink);stroke-width:1.2}
 .pcard:hover .pcShape .o,.pcard:focus-visible .pcShape .o{stroke:#8fa6c9}
-.pcard:hover .pcShape .w,.pcard:focus-visible .pcShape .w{filter:drop-shadow(0 0 4px var(--pg)) drop-shadow(0 0 16px rgba(188,108,255,.8))}
+.pcard:hover .pcShape .w,.pcard:focus-visible .pcShape .w{stroke-opacity:1}
 .pcard:focus-visible .pcShape .o{stroke:var(--bv)}
 .pcGrain{position:absolute;inset:0;pointer-events:none;background:url(grain.png);opacity:.55;mix-blend-mode:overlay;clip-path:polygon(4% 0%,60% 0%,65% 3.33333%,96% 3.33333%,100% 6%,100% 46%,98% 47.3333%,98% 82%,100% 83.3333%,100% 97.3333%,96% 100%,4% 100%,0% 97.3333%,0% 52%,2% 50.6667%,2% 38.6667%,0% 37.3333%,0% 2.66667%)}
 /* photo window: same stepped shape as the purple outline */
-.pcWin{position:absolute;left:9%;top:7.333%;width:82%;height:35.333%;overflow:hidden;
-  clip-path:polygon(0 0,54.88% 0,59.76% 7.55%,100% 7.55%,100% 90.57%,93.9% 100%,6.1% 100%,0 90.57%)}
+.pcHead{position:absolute;left:7%;top:5%;width:86%;height:13.5%;display:flex;flex-direction:column;gap:1px;overflow:hidden}
+.pcRow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pcWin{position:absolute;left:7%;top:32%;width:86%;height:31.333%;overflow:hidden;
+  clip-path:polygon(0 0,55.81% 0,60.47% 8.51%,100% 8.51%,100% 89.36%,94.19% 100%,5.81% 100%,0 89.36%)}
 .pcImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0;transition:transform .7s cubic-bezier(.16,1,.3,1),opacity .25s}
 .pcEmpty{position:absolute;inset:0;display:none;place-items:center;color:var(--bl);background:repeating-linear-gradient(118deg,rgba(143,166,201,.07) 0 1px,transparent 1px 8px)}
 .pcWin:not(:has(.pcImg)) .pcEmpty{display:grid} .pcWin:not(:has(.pcImg)) .pcCount{display:none}
 .pcShade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,16,32,.55) 0%,transparent 30%,transparent 68%,rgba(11,16,32,.6) 100%);pointer-events:none}
-.pcNo{position:absolute;left:5%;top:5%;display:flex;align-items:center;gap:7px;color:#dfe9ff;font-size:clamp(9.5px,3.2cqi,11px)}
+.pcNo{display:flex;align-items:center;gap:7px;color:#dfe9ff;font-size:clamp(9.5px,3.2cqi,11px);min-width:0;overflow:hidden;white-space:nowrap}
 .pcNo b{font-weight:600} .pcNo b::after{content:"";display:inline-block;width:12px;height:1px;background:var(--bl);margin-left:7px;vertical-align:middle}
-.pcDate{position:absolute;right:5%;top:12%;color:#dfe9ff;font-size:clamp(9.5px,3cqi,11px)}
+.pcDate{color:var(--bl);font-size:clamp(9px,2.8cqi,10.5px);flex:none}
 .pcPlate{position:absolute;left:5%;bottom:9%;display:flex;flex-wrap:wrap;gap:6px;padding:4px 8px;background:rgba(214,230,255,.18);border:1px solid rgba(214,230,255,.35);
   clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
 .pcPlate span{color:#eef4ff;font-size:9.5px} .pcPlate .warn{color:#FFB86B}
 .pcTicks{position:absolute;right:3.5%;top:30%;height:36%;width:7px;background:repeating-linear-gradient(180deg,rgba(223,233,255,.75) 0 1px,transparent 1px 5px);opacity:.6}
 .pcCount{position:absolute;right:8%;bottom:9%;padding:2px 6px;background:rgba(11,16,32,.75);color:#dfe9ff;font-size:9.5px}
 .pcard:hover .pcImg{transform:scale(1.05)}
-.pcTab{position:absolute;left:0;top:57.333%;width:4%;height:18%;display:grid;place-items:center;writing-mode:vertical-rl;transform:rotate(180deg);color:var(--bl);font-size:clamp(7.5px,2.4cqi,9.5px);letter-spacing:.12em;overflow:hidden;white-space:nowrap}
+.pcTab{position:absolute;left:0;top:75.333%;width:4%;height:18.667%;display:grid;place-items:center;writing-mode:vertical-rl;transform:rotate(180deg);color:var(--bl);font-size:clamp(7.5px,2.4cqi,9.5px);letter-spacing:.12em;overflow:hidden;white-space:nowrap}
 /* price tag with a hatch icon */
-.pcPriceTag{position:absolute;left:7%;top:57.5%;width:36%;height:9.5%;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:7px;align-content:center}
+.pcPriceTag{position:absolute;left:7%;top:20%;width:40%;height:10%;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:7px;align-content:center}
 .pcHatch{grid-row:1 / 3;width:clamp(16px,6cqi,22px);aspect-ratio:1;background:repeating-linear-gradient(-45deg,var(--bv) 0 2px,transparent 2px 5px);opacity:.85}
 .pcPrice{font-size:clamp(14px,5.6cqi,20px);font-weight:300;color:var(--bv);text-shadow:0 0 10px rgba(0,240,255,.45);line-height:1.05;white-space:nowrap}
 .pcPriceTag .micro{color:var(--bl);font-size:clamp(8px,2.6cqi,9.5px);border-top:1px solid var(--bl);padding-top:2px;justify-self:start}
 /* meter bars */
-.pcBars{position:absolute;left:47%;top:56.5%;width:46%;height:11%;display:flex;flex-direction:column;justify-content:center;gap:clamp(3px,1.4cqi,6px)}
+.pcBars{position:absolute;left:50%;top:19.5%;width:43%;height:11%;display:flex;flex-direction:column;justify-content:center;gap:clamp(3px,1.4cqi,6px)}
 .pcBar{display:grid;grid-template-columns:auto 1fr;align-items:baseline;column-gap:6px;row-gap:2px}
 .pcBar .micro{color:var(--bl);font-size:clamp(8px,2.5cqi,9.5px)} .pcBar b{justify-self:end;font-weight:500;color:var(--bv);font-size:clamp(9px,2.8cqi,10.5px);text-shadow:0 0 6px rgba(0,240,255,.4)}
 .pcBar i{grid-column:1 / -1;height:4px;background:var(--ink);box-shadow:inset 0 0 0 1px rgba(143,166,201,.25)}
 .pcBar s{display:block;height:100%;background:var(--bv);box-shadow:0 0 6px rgba(0,240,255,.6)}
 /* bordered info box */
-.pcBox{position:absolute;left:7%;top:69.5%;width:86%;height:18%;border:1px solid var(--ink);padding:clamp(5px,2.2cqi,9px) clamp(7px,2.6cqi,11px);display:flex;flex-direction:column;gap:2px;overflow:hidden}
-.pcBoxHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.pcBox{position:absolute;left:7%;top:75.5%;width:86%;height:12.5%;justify-content:center;border:1px solid var(--box);padding:clamp(5px,2.2cqi,9px) clamp(7px,2.6cqi,11px);display:flex;flex-direction:column;gap:2px;overflow:hidden}
 .pcard h3{font-size:clamp(13px,5.2cqi,18px);font-weight:500;letter-spacing:.02em;text-transform:uppercase;color:#e6eeff;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pcBoxHead .micro{color:var(--bl);font-size:clamp(8px,2.6cqi,9.5px);flex:none}
 .pcWhere{color:var(--bl);font-size:clamp(8px,2.6cqi,9.5px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pcKV{display:flex;flex-wrap:wrap;gap:2px 10px;margin-top:3px}
 .pcKV span{display:inline-flex;align-items:baseline;gap:4px;white-space:nowrap}
@@ -465,9 +466,22 @@ h2[data-n]::before{content:attr(data-n);color:var(--cyan);margin-right:12px;lett
 .pcard.gone{opacity:.5}
 .pcard.flash .pcShape .o{animation:pcFlash 2.2s ease-out}
 @keyframes pcFlash{0%,30%{stroke:#FF5CA8;stroke-width:2.5}}
-.pcard.launch{opacity:0;transform:scale(.96);pointer-events:none;transition-delay:.08s}
+.pcard.launch{opacity:.25;pointer-events:none}
 .pcard.launch .pcImg{opacity:0;transition-delay:0s}
 @media (hover:hover) and (pointer:fine){ .pcard{content-visibility:auto;contain-intrinsic-size:auto 480px} }
+/* four designs (data-v, picked from the listing id): 1 purple · 2 cyan, mirrored · 3 pink, inverted blocks + hatched
+   band · 4 purple, mirrored + inverted + hatched band */
+.pcard[data-v="2"]{--pg:#00F0FF}
+.pcard[data-v="3"]{--pg:#FF5CA8}
+.pcard[data-v="3"],.pcard[data-v="4"]{--mb:#1c2840;--mb-top:#2a3854;--box:rgba(143,166,201,.35)}
+.pcard[data-v="3"] .pcShape .d,.pcard[data-v="4"] .pcShape .d{fill:url(#pcHatch)}
+.pcard[data-v="2"] .pcShape,.pcard[data-v="4"] .pcShape,.pcard[data-v="2"] .pcGrain,.pcard[data-v="4"] .pcGrain{transform:scaleX(-1)}
+.pcard[data-v="2"] .pcWin,.pcard[data-v="4"] .pcWin{clip-path:polygon(100% 0,44.19% 0,39.53% 8.51%,0 8.51%,0 89.36%,5.81% 100%,94.19% 100%,100% 89.36%)}
+.pcard[data-v="2"] .pcPriceTag,.pcard[data-v="4"] .pcPriceTag{left:53%}
+.pcard[data-v="2"] .pcBars,.pcard[data-v="4"] .pcBars{left:7%}
+.pcard[data-v="2"] .pcTab,.pcard[data-v="4"] .pcTab{left:auto;right:0;transform:none}
+.pcard[data-v="2"] .pcTicks,.pcard[data-v="4"] .pcTicks{right:auto;left:3.5%}
+.pcard[data-v="2"] .pcRow,.pcard[data-v="4"] .pcRow{flex-direction:row-reverse}
 
 /* --- background HUD symbols: faint, a touch lighter than the page, slowly moving behind the cards --- */
 .bgGlyphs{position:fixed;inset:0;z-index:0;pointer-events:none;color:rgba(233,238,235,.1)}
@@ -484,7 +498,7 @@ body:has(.drawer:not([hidden])) .bgGlyphs *{animation-play-state:paused}
   .bgGlyphs .blink:nth-of-type(2n){animation-delay:-1.3s}
 }
 
-/* --- the dossier: expands out of the card and grows into a chamfered "spec sheet" with a HUD frame --- */
+/* --- the dossier: powers up like a HUD screen and grows into a chamfered "spec sheet" with a HUD frame --- */
 .gal{display:flex;flex-direction:column;gap:10px}
 .galMain{position:relative;aspect-ratio:16/8;max-height:min(52vh,560px);width:100%;background:repeating-linear-gradient(118deg,rgba(233,238,235,.06) 0 1px,transparent 1px 8px),var(--panel-2);overflow:hidden}
 .galMain .lp{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;border-radius:0;object-fit:cover}
@@ -515,20 +529,27 @@ body:has(.drawer:not([hidden])) .bgGlyphs *{animation-play-state:paused}
 .hcode.hc1{top:9px;left:calc(var(--ch) + 18px)} .hcode.hc2{bottom:9px;left:calc(var(--ch) + 18px)}
 .drawer #dClose{position:relative;z-index:4}
 @media (prefers-reduced-motion:no-preference){
-  .drawer.opening{animation:dossierIn .55s cubic-bezier(.16,1,.3,1) .1s both}
-  .drawer.closing{animation:dossierOut .38s cubic-bezier(.7,0,.84,0) both}
+  .drawer.opening{animation:dossierIn .62s cubic-bezier(.7,0,.2,1) .05s both}
+  .drawer.opening::after{content:"";position:absolute;left:0;right:0;height:2px;z-index:5;pointer-events:none;background:var(--cyan);box-shadow:0 0 14px var(--cyan),0 0 3px #fff;animation:scanDown .45s cubic-bezier(.4,0,.2,1) .3s both}
+  .drawer.opening .hc{animation:hudIn .35s cubic-bezier(.16,1,.3,1) .55s both}
+  .drawer.opening .hc.tl{--hx:-14px;--hy:-14px} .drawer.opening .hc.tr{--hx:14px;--hy:-14px} .drawer.opening .hc.bl{--hx:-14px;--hy:14px} .drawer.opening .hc.br{--hx:14px;--hy:14px}
+  .drawer.closing{animation:dossierOut .34s cubic-bezier(.7,0,.84,0) both}
   .pGrid.enter .pcard{animation:cardIn .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 22ms)}
 }
 @keyframes dossierIn{
-  0%{transform:translate(calc(-50% + var(--fx,0px)),calc(-50% + var(--fy,0px))) scale(var(--fsx,.3),var(--fsy,.3));clip-path:var(--fromclip);opacity:.4}
-  35%{opacity:1}
-  100%{transform:translate(-50%,-50%) scale(1);clip-path:var(--chamfer)}
+  0%{clip-path:var(--dotclip);opacity:1;filter:brightness(2.4)}
+  30%{clip-path:var(--lineclip);filter:brightness(2.2)}
+  36%{clip-path:var(--lineclip);filter:brightness(1.6)}
+  100%{clip-path:var(--chamfer);filter:none}
 }
-@keyframes dossierOut{ /* dossierIn backwards; its own name so the browser restarts it */
-  0%{transform:translate(-50%,-50%) scale(1);clip-path:var(--chamfer)}
-  65%{opacity:1}
-  100%{transform:translate(calc(-50% + var(--fx,0px)),calc(-50% + var(--fy,0px))) scale(var(--fsx,.3),var(--fsy,.3));clip-path:var(--fromclip);opacity:.3}
+@keyframes dossierOut{ /* the power-up backwards; its own name so the browser restarts it */
+  0%{clip-path:var(--chamfer);filter:none}
+  60%{clip-path:var(--lineclip);filter:brightness(1.8)}
+  100%{clip-path:var(--dotclip);opacity:0;filter:brightness(2.4)}
 }
+@keyframes scanDown{from{top:0;opacity:1}to{top:100%;opacity:0}}
+@keyframes hudIn{from{opacity:0;translate:var(--hx,0) var(--hy,0)}}
+
 .calm .pcard.launch{transition:none}
 
 /* --- touch screens: every control gets a 44px target (Apple/Google minimum); desktop keeps the compact look --- */
@@ -560,7 +581,7 @@ body:has(.drawer:not([hidden])) .bgGlyphs *{animation-play-state:paused}
 .switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--fg);transition:transform .2s}
 .switch:checked{background:var(--grad)} .switch:checked::after{transform:translateX(16px);background:var(--night)}
 /* calm mode (profile setting): same as the system's reduce-motion */
-.calm *{animation:none!important;transition:none!important} .calm .fx,.calm .ringfx{display:none}
+.calm *{animation:none!important;transition:none!important} .calm .fx,.calm .ringfx,.calm .drawer.opening::after{display:none}
 .calm .fLines .base line{stroke-dashoffset:0} .calm .fLines .pulse{display:none}
 .whoBox{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)}
 .whoCard{position:static;margin:0;color:inherit;width:min(380px,100%);background:var(--panel);border:1px solid color-mix(in srgb,var(--teal) 35%,var(--line));border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 80px rgba(0,0,0,.5);animation:popIn .28s cubic-bezier(.16,1,.3,1)}
@@ -602,6 +623,7 @@ body:has(.drawer:not([hidden])) .bgGlyphs *{animation-play-state:paused}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><pattern id="pcHatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#0a0f1c"/><rect width="1.6" height="5" fill="#3a4d70"/></pattern></defs></svg>
 <div class="bgGlyphs" aria-hidden="true">
   <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" fill="none" stroke="currentColor">
     <g class="spin"><circle cx="1180" cy="760" r="430" stroke-dasharray="2 9"/></g>
