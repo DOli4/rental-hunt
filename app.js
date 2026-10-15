@@ -255,7 +255,7 @@ function renderTiles(){
            ["no","No cats / no pets","var(--red)",'<svg width="14" height="14" viewBox="0 0 26 26"><path d="M13 3 24 22H2z" fill="#e5534b"/></svg>',all.filter(l=>petClass(l)==="no").length],
            ["ask","Pets: ask agent","var(--purple)",ICON.ask,all.filter(l=>petClass(l)==="ask").length],
            ["fibre","Fibre mentioned","var(--muted)",ICON.box,all.filter(fibreOk).length]];
-  $("tiles").innerHTML=t.map(([k,lab,c,ic,v])=>`<button class="tile" data-tile="${k}" aria-pressed="${S.tile===k}"><span class="t"><span style="color:${c};display:grid;place-items:center">${ic}</span>${lab}</span><span><span class="s">Places</span><br><span class="big num"><span data-count="t-${k}" data-to="${v}">${v}</span><small> / ${n}</small></span></span></button>`).join("");
+  $("tiles").innerHTML=t.map(([k,lab,c,ic,v])=>`<button class="tile" data-tile="${k}" aria-pressed="${S.tile===k}" data-glow data-glow-color="miami"><span class="glowInner" data-glow aria-hidden="true"></span><span class="t"><span style="color:${c};display:grid;place-items:center">${ic}</span>${lab}</span><span><span class="s">Places</span><br><span class="big num"><span data-count="t-${k}" data-to="${v}">${v}</span><small> / ${n}</small></span></span></button>`).join("");
 }
 
 /* ---------- places list ---------- */
@@ -293,28 +293,43 @@ async function addNote(id, text){
 const safeUrl = u => /^https:\/\//i.test(u||"") ? esc(u) : "#";
 const photosOf = l => (Array.isArray(l.photos)?l.photos:[]).filter(u=>/^https:\/\//i.test(u)).slice(0,12);
 const photoImg = u => `<img class="lp" src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;
-document.addEventListener("error", e=>{ if(e.target.classList && e.target.classList.contains("lp")) e.target.remove(); }, true); // hide broken photos
-function card(l, i){
-  const st=statusOf(l.id), t=tr(l.id), pc=petClass(l), fav=SHORT.includes(st);
-  const facts=[`<span class="fact ${pc==="ask"?"pet-ask":pc}">${petLabel(l)}</span>`];
-  if(fibreOk(l)) facts.push(`<span class="fact teal">Fibre</span>`);
-  if(secOk(l)) facts.push(`<span class="fact">Security</span>`);
-  if(l.available) facts.push(`<span class="fact">Available <b>${esc(l.available)}</b></span>`);
-  if(l.note) facts.push(`<span class="fact ask">Check note</span>`);
-  const ph=photosOf(l)[0];
-  return `<article class="card ${l.active===false?"gone":""}" data-id="${esc(l.id)}" tabindex="0" data-glow data-glow-color="miami">
-    <div class="glowInner" data-glow aria-hidden="true"></div>
-    ${isNew(l)?`<span class="newFlag">New</span>`:""}
-    ${ph?photoImg(ph):""}
-    <div class="cardNo micro"><span>${String((i||0)+1).padStart(2,"0")}</span>${esc(l.type)}</div>
-    <div class="top"><div style="min-width:0"><h3>${esc(l.suburb)}</h3><div class="where">${esc(l.address||"Address on request")}</div></div>
-      <div class="price num">${rand(l.price)}<small> pm</small></div></div>
-    <div class="facts"><span class="fact"><b>${l.beds}</b> bed</span><span class="fact"><b>${l.baths}</b> bath</span>${l.size_m2?`<span class="fact"><b>${l.size_m2}</b> m²</span>`:""}<span class="fact">TecWise <b>~${l.min_tecwise}</b> min</span><span class="fact">Drive <b>~${l.min_drive}</b> min</span></div>
-    <div class="facts">${facts.join("")}</div>
-    ${t.note?`<div class="note">${esc(t.note)}</div>`:""}
-    ${(()=>{ const log=notesOf(l.id); if(S.notesOpen.has(l.id)) return notesBlock(l.id,"card"); const ln=log[log.length-1]; return ln?`<div class="lastNote" data-notestoggle="${esc(l.id)}" title="Open notes"><b>${esc(whoIs(ln.by))}</b> <span class="when">· ${esc(ago(ln.at))}</span> — ${esc(ln.text)}</div>`:""; })()}
-    <div class="foot"><span class="src">${esc(l.source)}${l.agency?` · ${esc(l.agency)}`:""}</span>
-      <span class="row" style="flex-wrap:nowrap">${st!=="new"?`<span class="status st-${st}">${STATUS_LABEL[st]}</span>`:""}<button class="nBtn" data-notestoggle="${esc(l.id)}" aria-expanded="${S.notesOpen.has(l.id)}" title="Notes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>Notes${(t.log||[]).length?`<span class="c">${(t.log||[]).length}</span>`:""}</button><button class="heart" data-heart="${esc(l.id)}" aria-pressed="${fav}">${fav?"♥ Saved":"♡ Interested"}</button></span></div>
+document.addEventListener("error", e=>{ const t=e.target; if(t.classList && t.classList.contains("lp")) (t.closest(".galThumb")||t).remove(); }, true); // hide broken photos
+// Panel card, shaped like a "spec sheet": matte blue outline with cut corners and notches (one SVG that scales
+// with the card), the photo in a stepped window with a glowing purple frame, a side tab with the type, an info
+// panel (darker-blue labels, glowing light-blue values) and a glowing purple block with the price and the heart.
+const PET_SHORT={"Pets OK":"OK","No pets":"No","Small pets OK":"Small","Dogs only, no cats":"No cats","Pets: ask":"Ask"};
+function panelCard(l, i){
+  const st=statusOf(l.id), t=tr(l.id), pc=petClass(l), fav=SHORT.includes(st), ph=photosOf(l), notes=(t.log||[]).length;
+  const no=String((i||0)+1).padStart(2,"0");
+  const spec=(k,v,cls)=>`<div><dt>${k}</dt><dd${cls?` class="${cls}"`:""}>${v}</dd></div>`;
+  return `<article class="pcard ${l.active===false?"gone":""}" data-id="${esc(l.id)}" tabindex="0" aria-label="${esc(l.type+" in "+l.suburb+", "+rand(l.price)+" a month")}">
+    <svg class="pcShape" viewBox="0 0 200 300" preserveAspectRatio="none" aria-hidden="true">
+      <path class="o" d="M8 0H120L130 10H192L200 18V138L196 142V246L200 250V292L192 300H8L0 292V156L4 152V116L0 112V8Z"/><path class="t" d="M0 160L8 166V214L0 220Z"/><path class="p" d="M16 136H150L160 146V236L150 246H16Z"/>
+      <path class="w" d="M16 16H112L120 24H184V112L168 128H32L16 112Z"/><path class="a" d="M126 232H186V276L166 296H134L126 288Z"/>
+      <path class="x" d="M68 3.5v9M63.5 8h9"/><circle class="x" cx="68" cy="8" r="2.4"/>
+    </svg>
+    <div class="pcWin">
+      ${ph.length?`<img class="lp pcImg" src="${esc(ph[0])}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`:""}
+      <span class="pcEmpty micro">No photo yet</span>
+      <span class="pcShade"></span>
+      <span class="pcNo micro"><b>${no}</b>${esc(l.type)}</span>
+      <span class="pcDate micro">${esc(l.first_seen||"")}</span>
+      <span class="pcTags">${isNew(l)?`<span class="pcFlag micro">New</span>`:""}${st!=="new"?`<span class="status st-${st}">${STATUS_LABEL[st]}</span>`:""}${l.note?`<span class="pcFlag warn micro">Check note</span>`:""}</span>
+      <span class="pcTicks"></span>
+      ${ph.length?`<span class="pcCount micro">01 / ${String(ph.length).padStart(2,"0")}</span>`:""}
+    </div>
+    <span class="pcTab micro">${esc(l.type)}</span>
+    <div class="pcInfo">
+      <h3>${esc(l.suburb)}</h3><div class="pcWhere">${esc(l.address||"Address on request")}</div>
+      <dl class="pcSpecs">
+        ${spec("Bed",l.beds)}${spec("Bath",l.baths)}${spec("Size",l.size_m2?l.size_m2+" m²":"—")}
+        ${spec("TecWise","~"+l.min_tecwise+" min")}${spec("Drive","~"+l.min_drive+" min")}${spec("Available",esc(l.available||"Ask"))}
+        ${spec("Pets",esc(PET_SHORT[petLabel(l)]||petLabel(l)),"pet-"+pc)}${spec("Fibre",fibreOk(l)?"Yes":"Ask")}${spec("Security",secOk(l)?"Yes":"Ask")}
+      </dl>
+    </div>
+    <div class="pcAccent"><span class="micro">Per month</span><span class="pcPrice num">${rand(l.price)}</span></div>
+    <div class="pcFoot"><span class="src micro">${esc(l.source)}</span>
+      <span class="pcBtns"><button class="pcHeart" data-heart="${esc(l.id)}" aria-pressed="${fav}" aria-label="${fav?"Remove from shortlist":"Add to shortlist"}">${fav?"♥":"♡"}</button><button class="nBtn" data-opennotes="${esc(l.id)}" title="Notes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>Notes${notes?`<span class="c">${notes}</span>`:""}</button></span></div>
   </article>`;
 }
 function renderList(){
@@ -325,7 +340,10 @@ function renderList(){
   if(!arr.length){ const why=S.tab==="shortlist"?"Tap ♡ Interested on a place to add it to your shortlist.":S.tab==="new"?"Nothing new came in on the last search.":S.tab==="gone"?"Every place is still listed.":"No places match these filters. Try a higher max, another area, or switch a filter off.";
     $("view").innerHTML=`<div class="empty"><h3>Nothing to show</h3>${why}</div>`; return; }
   const keepN=grabTA($("view"));
-  const enter=!S.listShown; S.listShown=true; $("view").innerHTML=`<div class="grid ${enter?"enter":""}">${arr.map(card).join("")}</div>`; $("view").querySelectorAll(".card").forEach((c,i)=>{ c.style.setProperty("--i",Math.min(i,30)); if(S.flash.has(c.dataset.id)) c.classList.add("flash"); });
+  const enter=!S.listShown; S.listShown=true;
+  $("view").innerHTML=`<div class="pGrid ${enter?"enter":""}">${arr.map(panelCard).join("")}</div>`;
+  $("view").querySelectorAll(".pcard").forEach((c,i)=>{ c.style.setProperty("--i",Math.min(i,30));
+    if(S.flash.has(c.dataset.id)) c.classList.add("flash"); if(S.openId===c.dataset.id) c.classList.add("launch"); });
   putTA($("view"),keepN);
 }
 function renderHeader(){
@@ -365,8 +383,40 @@ function fillTemplate(l){
   const tpl=S.settings.template||DEFAULT_TEMPLATE, first=(l.agent||"").split(" ")[0];
   return tpl.replace(/\{agent\}/g,first||"there").replace(/\{beds\}/g,l.beds).replace(/\{type\}/g,(l.type||"place").toLowerCase()).replace(/\{suburb\}/g,l.suburb).replace(/\{price\}/g,rand(l.price).slice(1)).replace(/\{link\}/g,l.url);
 }
-function openDrawer(id){ S.openId=id; S.popId=null; $("scrim").hidden=false; $("drawer").hidden=false; renderDrawer(true); renderMap(); try{history.replaceState(null,"","#"+id.replace(/[^\w.~-]/g,"_"))}catch(e){} }
-function closeDrawer(){ S.openId=null; $("scrim").hidden=true; $("drawer").hidden=true; try{history.replaceState(null,"",location.pathname+location.search)}catch(e){} }
+// Swap just the gallery's photo, count and thumbnail state (a full re-render would drop typed text and focus).
+function showGal(ph){
+  const g=$("drawer").querySelector(".gal"); if(!g) return; const i=S.galIdx||0, main=g.querySelector(".galMain");
+  const img=document.createElement("img"); img.className="lp"; img.alt=""; img.decoding="async"; img.referrerPolicy="no-referrer"; img.src=ph[i];
+  const old=main.querySelector("img.lp"); if(old) old.replaceWith(img); else main.prepend(img);
+  const c=g.querySelector(".galCount"); if(c) c.textContent=`${String(i+1).padStart(2,"0")} / ${String(ph.length).padStart(2,"0")}`;
+  g.querySelectorAll("[data-gal]").forEach((b,k)=>b.setAttribute("aria-pressed",String(k===i)));
+}
+// Where the dossier flies out of: the place's card if it's on screen, else the middle of the screen.
+function dossierOrigin(id){
+  const d=$("drawer"), h=document.querySelector(`#view .pcard[data-id="${CSS.escape(id)}"]`), r=h&&h.getBoundingClientRect();
+  const dw=d.offsetWidth||innerWidth, dh=d.offsetHeight||innerHeight;
+  if(r && r.bottom>0 && r.top<innerHeight){
+    d.style.setProperty("--fx",(r.left+r.width/2-innerWidth/2).toFixed(1)+"px"); d.style.setProperty("--fy",(r.top+r.height/2-innerHeight/2).toFixed(1)+"px");
+    d.style.setProperty("--fsx",(r.width/dw).toFixed(3)); d.style.setProperty("--fsy",(r.height/dh).toFixed(3));
+  } else { ["--fx","--fy"].forEach(k=>d.style.setProperty(k,"0px")); d.style.setProperty("--fsx",".25"); d.style.setProperty("--fsy",".25"); }
+  return h;
+}
+function openDrawer(id){
+  const d=$("drawer"); S.openId=id; S.popId=null; S.galIdx=0; d.classList.remove("closing");
+  document.querySelectorAll("#view .pcard.launch").forEach(c=>c.classList.remove("launch"));
+  $("scrim").hidden=false; d.hidden=false; renderDrawer(true); renderMap();
+  const h=dossierOrigin(id); if(h) h.classList.add("launch");
+  d.classList.remove("opening"); void d.offsetWidth; d.classList.add("opening");
+  try{history.replaceState(null,"","#"+id.replace(/[^\w.~-]/g,"_"))}catch(e){}
+}
+function closeDrawer(){
+  const d=$("drawer"), id=S.openId; if(!id){ d.hidden=true; $("scrim").hidden=true; return; }
+  S.openId=null; try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}
+  const done=()=>{ if(S.openId) return; d.hidden=true; d.classList.remove("closing","opening"); $("scrim").hidden=true;
+    const h=document.querySelector(`#view .pcard[data-id="${CSS.escape(id)}"]`); if(h) h.classList.remove("launch"); };
+  if(calmNow() || d.hidden){ done(); return; }
+  dossierOrigin(id); d.classList.remove("opening"); d.classList.add("closing"); setTimeout(done,460);
+}
 function renderDrawer(first){
   const l=S.listings.get(S.openId); if(!l){ closeDrawer(); return; }
   const t=tr(l.id), st=statusOf(l.id), phone=phoneOf(l), email=emailOf(l), msg=fillTemplate(l), pc=petClass(l);
@@ -376,13 +426,23 @@ function renderDrawer(first){
   const who=t.updatedBy?whoIs(t.updatedBy):null;
   const wa=intl(phone)?`https://wa.me/${intl(phone)}?text=${encodeURIComponent(msg)}`:"";
   const origin=encodeURIComponent(l.geo==="exact"?l.lat+","+l.lng:(l.address?l.address+", ":"")+l.suburb+", Centurion");
+  const ph=photosOf(l), gi=Math.min(S.galIdx||0,Math.max(0,ph.length-1));
+  const gallery=ph.length?`<div class="gal"><div class="galMain">${photoImg(ph[gi])}
+      ${ph.length>1?`<button class="galNav prev" data-galstep="-1" aria-label="Previous photo">‹</button><button class="galNav next" data-galstep="1" aria-label="Next photo">›</button>`:""}
+      <span class="micro galCount">${String(gi+1).padStart(2,"0")} / ${String(ph.length).padStart(2,"0")}</span></div>
+      ${ph.length>1?`<div class="galThumbs">${ph.map((u,k)=>`<button class="galThumb" data-gal="${k}" aria-pressed="${k===gi}" aria-label="Photo ${k+1}"><img class="lp" src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join("")}</div>`:""}</div>`
+    :`<div class="gal galNone"><span class="micro">No photos yet · the nightly search adds them</span></div>`;
   $("drawer").innerHTML=`
+   <div class="hud" aria-hidden="true"><i class="hc tl"></i><i class="hc tr"></i><i class="hc bl"></i><i class="hc br"></i>
+     <i class="hd tl"></i><i class="hd tr"></i><i class="hd bl"></i><i class="hd br"></i><i class="hbar hb1"></i><i class="hbar hb2"></i>
+     <i class="hplus p1"></i><i class="hplus p2"></i><i class="hplus p3"></i><span class="hbarcode"></span>
+     <span class="micro hcode hc1">REF · ${esc(l.id)}</span><span class="micro hcode hc2">${esc(l.first_seen||"")} · ${esc(l.source)}</span></div>
    <div class="dHead"><div style="min-width:0"><div class="label">${esc(l.source)}${l.tier==="nearby"?" · just outside":""}</div><h2 id="dTitle">${esc(l.type)} in ${esc(l.suburb)}</h2>
      <div class="muted" style="margin-top:2px;font-size:13px">${esc(l.address||"Address on request")}</div>
      <div class="price num" style="margin-top:8px">${rand(l.price)}<small> pm${l.deposit?` · deposit ${esc(l.deposit)}`:""}</small></div></div>
      <button class="iconbtn x" id="dClose" aria-label="Close">×</button></div>
    <div class="dBody">
-     ${photosOf(l).length?`<div class="photos">${photosOf(l).map(photoImg).join("")}</div>`:""}
+     ${gallery}
      <div class="sec"><div class="label">Where we are with it</div>
        <div class="statusPick">${STATUSES.map(([k,v])=>`<button data-status="${k}" aria-pressed="${st===k}">${v}</button>`).join("")}</div>
        ${who?`<div class="muted" style="font-size:11px">Last changed by ${esc(who)}${t.updatedAt?` · ${new Date(t.updatedAt).toLocaleString("en-ZA",{dateStyle:"medium",timeStyle:"short"})}`:""}</div>`:""}</div>
@@ -467,6 +527,11 @@ document.addEventListener("click", async e=>{
     const rc=se.getBoundingClientRect(); S.editNote=null; S.freshNote=nid; S.freshKind="edit"; setTimeout(()=>{ if(S.freshNote===nid) S.freshNote=null; },1500); noteEdited(rc); if(await saveTrack(id,{log},{op:"note.edit",nid,text:v.slice(0,2000)})) toast("Note updated","edit"); return; }
   if(el.closest(".notesBox")) return;
   if(el.closest("[data-signin]")){ openWho(""); return; }
+  const on=el.closest("[data-opennotes]"); if(on){ e.stopPropagation(); const nid=on.dataset.opennotes; openDrawer(nid); clearTimeout(S.notesT);
+    S.notesT=setTimeout(()=>{ if(S.openId!==nid) return; const n=$("drawer").querySelector(".notesBox"); if(!n) return;
+      n.scrollIntoView({block:"start",behavior:calmNow()?"auto":"smooth"}); const ta=n.querySelector("textarea[data-nin]"); if(ta) ta.focus({preventScroll:true}); },800); return; }
+  const gs=el.closest("[data-gal],[data-galstep]"); if(gs && S.openId){ const ph=photosOf(S.listings.get(S.openId)||{}), n=ph.length; if(!n) return;
+    S.galIdx=gs.dataset.gal!=null ? +gs.dataset.gal : ((S.galIdx||0)+(+gs.dataset.galstep)+n)%n; showGal(ph); return; }
   const op=el.closest("[data-open]"); if(op){ openDrawer(op.dataset.open); return; }
   const pop=el.closest("[data-pop]"); if(pop){ S.popId = S.popId===pop.dataset.pop ? null : pop.dataset.pop; renderMap(); return; }
   if(el.closest("[data-closepop]")){ S.popId=null; renderMap(); return; }
@@ -476,7 +541,7 @@ document.addEventListener("click", async e=>{
   const tab=el.closest("[data-tab]"); if(tab){ S.tab=tab.dataset.tab; store.set("tab",S.tab); render(); return; }
   const jump=el.closest("[data-jump]"); if(jump){ S.tab=jump.dataset.jump; render(); $("placesSec").scrollIntoView({behavior:"smooth",block:"start"}); return; }
   const tile=el.closest("[data-tile]"); if(tile){ S.tile = S.tile===tile.dataset.tile ? null : tile.dataset.tile; render(); return; }
-  const c=el.closest(".card"); if(c && !el.closest("a,button")){ openDrawer(c.dataset.id); return; }
+  const c=el.closest(".pcard"); if(c && !el.closest("a,button")){ openDrawer(c.dataset.id); return; }
   if(el.id==="dClose"||el.closest("#dClose")||el.id==="scrim"){ closeDrawer(); return; }
   const sp=el.closest("[data-status]"); if(sp && S.openId){ sparkle(sp.getBoundingClientRect(), sp.dataset.status); if(await saveTrack(S.openId,{status:sp.dataset.status})) toast("Marked "+STATUS_LABEL[sp.dataset.status].toLowerCase(),sp.dataset.status); return; }
   const cp=el.closest("[data-copy]"); if(cp){ copy(cp.dataset.copy); return; }
@@ -488,7 +553,7 @@ document.addEventListener("click", async e=>{
 });
 document.addEventListener("keydown", e=>{ const et=e.target.closest&&e.target.closest("textarea[data-nedit]"); if(et){ if(e.key==="Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); const b=et.closest(".nEdit").querySelector("[data-saveedit]"); if(b) b.click(); } else if(e.key==="Escape"){ e.preventDefault(); e.stopPropagation(); S.editNote=null; rerenderNotes(); } return; }
   const ta=e.target.closest&&e.target.closest("textarea[data-nin]"); if(ta && e.key==="Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); const b=ta.closest(".notesBox").querySelector("[data-addnote]"); if(b) b.click(); return; } if(ta && e.key==="Escape" && ta.dataset.where==="card"){ e.stopPropagation(); S.notesOpen.delete(ta.dataset.nin); renderList(); return; } if(e.key==="Enter" && ta) return;
-  if(e.key==="Escape"){ if(S.openId) closeDrawer(); else if(S.popId){ S.popId=null; renderMap(); } else if(S.sideId){ S.sideId=null; renderSide(); renderMap(); } } if(e.key==="Enter" && e.target.classList && e.target.classList.contains("card")) openDrawer(e.target.dataset.id); });
+  if(e.key==="Escape"){ if(S.openId) closeDrawer(); else if(S.popId){ S.popId=null; renderMap(); } else if(S.sideId){ S.sideId=null; renderSide(); renderMap(); } } if(e.key==="Enter" && e.target.classList && e.target.classList.contains("pcard")) openDrawer(e.target.dataset.id); });
 ["fArea","fMax","fPets","sort"].forEach(id=>$(id).addEventListener("change",()=>{ store.set(id,$(id).value); render(); }));
 $("q").addEventListener("input",()=>render());
 let rz; window.addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(renderMap,120); });
@@ -570,7 +635,7 @@ function partnerChanged(id, t, o){
   } else {
     toast(`${who} marked ${l.type.toLowerCase()} in ${l.suburb} as ${STATUS_LABEL[t.status||"new"].toLowerCase()}`,"partner");
   }
-  if(SHORT.includes(t.status) && !SHORT.includes(o.status)){ const m=document.querySelector(`.card[data-id="${CSS.escape(id)}"] .heart`); if(m) hearts(m.getBoundingClientRect()); }
+  if(SHORT.includes(t.status) && !SHORT.includes(o.status)){ const m=document.querySelector(`.pcard[data-id="${CSS.escape(id)}"] .pcHeart`); if(m) hearts(m.getBoundingClientRect()); }
 }
 let loading=false;
 async function load(){
@@ -661,17 +726,23 @@ $("whoBox").addEventListener("keydown",e=>{ if(e.key==="Escape"){ e.stopPropagat
 $("devForm").addEventListener("submit",async e=>{ e.preventDefault();
   try{ signIn(await (await fetch(CFG.devTokenUrl+"?email="+encodeURIComponent($("devEmail").value.trim()))).text()); }catch(err){ console.warn("[rental] dev sign-in failed", err); homeMsg("Dev sign-in failed"); } });
 
+/* ---------- background HUD symbols: a few readouts tick over while the page is visible ---------- */
+(function(){ const nums=[...document.querySelectorAll(".bgGlyphs [data-tick]")]; if(!nums.length) return;
+  setInterval(()=>{ if(calmNow() || document.visibilityState!=="visible" || document.documentElement.classList.contains("locked")) return;
+    const el=nums[Math.floor(Math.random()*nums.length)], w=+el.dataset.tick; el.textContent=String(Math.floor(Math.random()*10**w)).padStart(w,"0"); },1400);
+})();
+
 /* ---------- GlowCard pointer tracking (the component's syncPointer): one listener, once per frame, read every
    on-screen card's box then write --x/--y inside it (and --xp/--yp across the screen) ---------- */
 (function(){ if(!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
   let f=0, x=-1e4, y=-1e4;
-  const paint=()=>{ f=0; const cards=[...$("view").querySelectorAll(".card")], rs=cards.map(c=>c.getBoundingClientRect());
+  const paint=()=>{ f=0; const cards=[...document.querySelectorAll(".tile[data-glow]")], rs=cards.map(c=>c.getBoundingClientRect());
     cards.forEach((c,i)=>{ const r=rs[i]; if(r.bottom<0||r.top>innerHeight) return; c.style.setProperty("--x",(x-r.left).toFixed(1)+"px"); c.style.setProperty("--y",(y-r.top).toFixed(1)+"px"); });
     $("view").style.setProperty("--xp",(x/innerWidth).toFixed(3)); $("view").style.setProperty("--yp",(y/innerHeight).toFixed(3)); };
   const kick=()=>{ if(!f) f=requestAnimationFrame(paint); };
   document.addEventListener("pointermove",e=>{ x=e.clientX; y=e.clientY; kick(); },{passive:true});
   window.addEventListener("scroll",kick,{passive:true});
-  new MutationObserver(kick).observe($("view"),{childList:true}); // cards get rebuilt on every render
+  new MutationObserver(kick).observe($("tiles"),{childList:true});
 })();
 
 updWho(); if(S.session){ document.documentElement.classList.remove("locked"); load(); } else { S.loaded=true; showHome(""); }
