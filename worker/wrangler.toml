@@ -6,7 +6,7 @@ compatibility_date = "2026-01-01"
 REPO = "DOli4/rental-hunt-data"
 BRANCH = "data"
 ALLOWED_ORIGIN = "https://doli4.github.io"
-GOOGLE_CLIENT_ID = ""
+GOOGLE_CLIENT_ID = "733921269880-8amcl3862nsdtdqljekrfjri1ro0u8ef.apps.googleusercontent.com"
 
 # Caps sign-in and save attempts per visitor (optional; the worker skips it if this binding is missing)
 [[ratelimits]]
