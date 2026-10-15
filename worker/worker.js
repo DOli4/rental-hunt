@@ -6,13 +6,13 @@
 // GITHUB_API and GOOGLE_JWKS_URL are optional and only used by the local tests to point at mocks.
 
 const ID_RE = /^[A-Za-z0-9._~-]+$/;
-const STATUSES = ["new", "interested", "contacted", "viewing", "applied", "no"];
+const STATUSES = new Set(["new", "interested", "contacted", "viewing", "applied", "no"]);
 const FIELDS = ["status", "phone", "email", "viewing", "note"];
 const MAX_TEXT = 2000;
 const FILES = ["listings.json", "track.json", "meta.json", "settings.json"];
 
 // Per-isolate memo of the last snapshot. ponytail: in-memory only, a cold isolate refetches (5 GitHub calls).
-let memo = null; // { sha, etag, checkedAt, body }
+let memo = null; // the snapshot with its sha, etag and when it was last checked
 
 export default {
   async fetch(req, env) {
@@ -58,7 +58,7 @@ function gh(env, path, init = {}) {
       Authorization: `Bearer ${env.GITHUB_TOKEN}`,
       "User-Agent": "rental-hunt-worker",
       "X-GitHub-Api-Version": "2022-11-28",
-      ...(init.headers || {}),
+      ...init.headers,
     },
   });
 }
@@ -85,12 +85,12 @@ async function writeTrack(env, track, sha, message) {
 }
 function b64decode(s) {
   const bin = atob(s.replace(/\s/g, ""));
-  return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+  return new TextDecoder().decode(Uint8Array.from(bin, c => c.codePointAt(0)));
 }
 function b64encode(str) {
   const bytes = new TextEncoder().encode(str);
   let bin = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCodePoint(...bytes.subarray(i, i + 0x8000));
   return btoa(bin);
 }
 
@@ -208,7 +208,7 @@ const OPS = {
     if (!f || typeof f !== "object" || Array.isArray(f)) throw fail(400, "fields missing");
     const keys = Object.keys(f);
     if (!keys.length || keys.some(k => !FIELDS.includes(k))) throw fail(400, `only ${FIELDS.join(", ")} can be set`);
-    if ("status" in f && !STATUSES.includes(f.status)) throw fail(400, "unknown status");
+    if ("status" in f && !STATUSES.has(f.status)) throw fail(400, "unknown status");
     for (const k of keys) t[k] = str(f[k], k).trim();
     return keys.length === 1 && keys[0] === "status" ? `marked {id} ${f.status}` : `updated ${keys.join(", ")} on {place}`;
   },

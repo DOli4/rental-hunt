@@ -7,3 +7,5 @@ node_modules/
 .claude/
 lcov.info
 .wrangler/
+.coverage
+coverage.xml

@@ -29,6 +29,39 @@ LISTINGS = os.path.join(ROOT, "data", "listings.json")
 MAX_PRICE = 16000
 
 
+EMPTY = (None, "", "unknown", [])
+
+
+def wanted(n):
+    """3+ bed, 2+ bath, priced and within budget."""
+    return n.get("price") is not None and n["price"] <= MAX_PRICE and n.get("beds", 0) >= 3 and float(n.get("baths", 0)) >= 2
+
+
+def new_listing(n, date):
+    n.update(first_seen=date, last_seen=date, active=True, price_history=[{"date": date, "price": n["price"]}])
+    for k, v in (("dupes", []), ("note", ""), ("email", ""), ("phone_work", "")):
+        n.setdefault(k, v)
+    return n
+
+
+def update_listing(o, n, date, repriced):
+    """Fold tonight's copy n into the stored listing o. Only fills fields that are still empty
+    (photos included), so nothing a person typed is ever overwritten. Returns True if o changed."""
+    before = json.dumps(o, sort_keys=True)
+    o["last_seen"] = date
+    o["active"] = True
+    if n["price"] != o["price"]:
+        o.setdefault("price_history", []).append({"date": date, "price": n["price"]})
+        repriced.append((o["id"], o["price"], n["price"]))
+        o["price"] = n["price"]
+    for k, v in n.items():
+        if k not in ("first_seen", "price_history") and v not in EMPTY and o.get(k) in EMPTY:
+            o[k] = v
+    if n.get("available"):
+        o["available"] = n["available"]
+    return json.dumps(o, sort_keys=True) != before
+
+
 def main(run_path):
     run = json.load(open(run_path, encoding="utf-8"))
     date = run["date"]
@@ -38,42 +71,22 @@ def main(run_path):
     changed, added, gone, repriced = set(), [], [], []
     seen = set()
 
-    for n in run["listings"]:
-        if n.get("price") is None or n["price"] > MAX_PRICE or n.get("beds", 0) < 3 or float(n.get("baths", 0)) < 2:
-            continue
-        n = enrich(n)
+    for n in (enrich(n) for n in run["listings"] if wanted(n)):
         if n["tier"] == "outside":
             continue
         seen.add(n["id"])
         if n["id"] not in cur:
-            n.update(first_seen=date, last_seen=date, active=True,
-                     price_history=[{"date": date, "price": n["price"]}])
-            n.setdefault("dupes", []); n.setdefault("note", ""); n.setdefault("email", ""); n.setdefault("phone_work", "")
-            cur[n["id"]] = n
-            added.append(n["id"]); changed.add(n["id"])
-            continue
-        o = cur[n["id"]]
-        before = json.dumps(o, sort_keys=True)
-        o["last_seen"] = date
-        o["active"] = True
-        if n["price"] != o["price"]:
-            o.setdefault("price_history", []).append({"date": date, "price": n["price"]})
-            repriced.append((o["id"], o["price"], n["price"]))
-            o["price"] = n["price"]
-        for k, v in n.items():
-            if k in ("first_seen", "price_history"):
-                continue
-            if v not in (None, "", "unknown", []) and o.get(k) in (None, "", "unknown", []):
-                o[k] = v
-        if o.get("available") != n.get("available") and n.get("available"):
-            o["available"] = n["available"]
-        if json.dumps(o, sort_keys=True) != before:
-            changed.add(o["id"])
+            cur[n["id"]] = new_listing(n, date)
+            added.append(n["id"])
+            changed.add(n["id"])
+        elif update_listing(cur[n["id"]], n, date, repriced):
+            changed.add(n["id"])
 
     for i, o in cur.items():
         if i not in seen and o.get("active", True) and o["source"] in ok_sources:
             o["active"] = False
-            gone.append(i); changed.add(i)
+            gone.append(i)
+            changed.add(i)
 
     doc["listings"] = sorted(cur.values(), key=lambda x: (not x.get("active", True), x["tier"] != "core", x["price"]))
     doc["updated"] = date

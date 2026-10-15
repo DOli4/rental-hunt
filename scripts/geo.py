@@ -50,6 +50,13 @@ def drive_min(k):
     return max(3, round(k * 1.35 / 40 * 60))
 
 
+def tier(best):
+    """core: within CORE_MIN of a work place; nearby: within NEARBY_MIN; otherwise outside."""
+    if best <= CORE_MIN:
+        return "core"
+    return "nearby" if best <= NEARBY_MIN else "outside"
+
+
 def enrich(l):
     exact = l.get("geo") == "exact" or (l.get("lat") is not None and l.get("lng") is not None and l.get("geo") != "suburb")
     if not exact:
@@ -63,7 +70,7 @@ def enrich(l):
     l["min_drive"] = drive_min(km(p, (a["drive"]["lat"], a["drive"]["lng"])))
     l.pop("min_insideout", None)
     best = min(l["min_tecwise"], l["min_drive"])
-    l["tier"] = "core" if best <= CORE_MIN else ("nearby" if best <= NEARBY_MIN else "outside")
+    l["tier"] = tier(best)
     q = f"{l['lat']},{l['lng']}" if l["geo"] == "exact" else ", ".join(
         x for x in [l.get("address", ""), l.get("suburb", ""), "Centurion"] if x)
     l["maps_url"] = "https://www.google.com/maps/search/?api=1&query=" + q.replace(" ", "+")

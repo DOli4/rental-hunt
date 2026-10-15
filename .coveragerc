@@ -1,0 +1,4 @@
+[run]
+source = scripts
+omit = scripts/seed_listings.py
+relative_files = True

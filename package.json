@@ -2,7 +2,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node test/worker.test.mjs",
-    "dev": "node test/dev.mjs"
+    "test": "node --test test/worker.test.mjs test/app.test.mjs && python -m unittest discover -s test -p test_*.py",
+    "dev": "node test/dev.mjs",
+    "coverage": "node test/coverage.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "prettier": "^3.6.2"
   }
 }
