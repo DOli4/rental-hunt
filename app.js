@@ -817,14 +817,20 @@ function putTA(root, o) {
     const k = ta.dataset.key;
     if (o.vals[k] != null) ta.value = o.vals[k];
     if (o.focus === k) {
-      ta.focus();
+      ta.focus({ preventScroll: true });
       ta.setSelectionRange(o.sel[0], o.sel[1]);
     }
+    fitTA(ta);
   });
   if (!S.editNote)
     root.querySelectorAll(".nList").forEach(nl => {
       nl.scrollTop = nl.scrollHeight;
     });
+}
+// note boxes grow with what's typed (up to the CSS max-height), so nothing scrolls inside a tiny box
+function fitTA(ta) {
+  ta.style.height = "auto";
+  ta.style.height = ta.scrollHeight + "px";
 }
 function rerenderNotes() {
   renderList();
@@ -885,7 +891,8 @@ function notesBlock(id, where) {
     : `<div class="nEmpty">No notes yet. Jot down what the agent said, viewing times, deposit, anything.</div>`;
   return `<div class="notesBox" data-notes="${esc(id)}">
     <div class="nList">${items}</div>
-    <div class="nAdd"><textarea data-key="add:${esc(id)}" data-nin="${esc(id)}" data-where="${where}" rows="1" placeholder="Add a note…" title="Enter to save · Shift+Enter for a new line"></textarea><button class="btn small primary" data-addnote="${esc(id)}" data-where="${where}">Add</button></div>
+    <div class="nAdd"><textarea data-key="add:${esc(id)}" data-nin="${esc(id)}" data-where="${where}" rows="1" placeholder="Write a note for both of you…" aria-label="New note"></textarea><button class="btn small primary" data-addnote="${esc(id)}" data-where="${where}">Add</button></div>
+    <div class="nHint">Enter to save · Shift+Enter for a new line</div>
   </div>`;
 }
 async function addNote(id, text) {
@@ -1013,7 +1020,7 @@ function renderList() {
     return;
   }
   if (!S.listings.size) {
-    view.innerHTML = emptyView("No places yet", "The 6pm search adds places here every evening.");
+    view.innerHTML = emptyView("No places yet", "The 8am search adds places here every morning.");
     return;
   }
   const arr = listFor(S.tab);
@@ -1084,7 +1091,7 @@ function renderSide() {
     wa = waLink(phone, fillTemplate(l));
   const summary = l.summary ? `<div>${esc(l.summary)}</div>` : '<div class="muted">No description saved yet. Open the listing for the full ad.</div>';
   const note = l.note ? `<div class="banner">${esc(l.note)}</div>` : "";
-  const ours = t.note ? `<div><div class="label" style="margin-bottom:6px">Our notes</div><div class="note">${esc(t.note)}</div></div>` : "";
+  const ours = t.note ? `<div><div class="label" style="margin-bottom:6px">Earlier notes</div><div class="note">${esc(t.note)}</div></div>` : "";
   const waBtn = wa ? `<a class="btn small wa" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>` : "";
   box.hidden = false;
   box.innerHTML = `<div class="sh"><div style="min-width:0"><div class="label">${esc(l.source)}${tierTag(l)}</div><h3>${esc(l.type)} · ${esc(l.suburb)}</h3><div class="muted" style="font-size:12px">${esc(l.address || "Address on request")}</div></div>
@@ -1211,7 +1218,7 @@ function closeDrawer() {
 const galThumb = (u, k, gi) =>
   `<button class="galThumb" data-gal="${k}" aria-pressed="${k === gi}" aria-label="Photo ${k + 1}"><img class="lp" src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`;
 function galleryHtml(ph, gi) {
-  if (!ph.length) return '<div class="gal galNone"><span class="micro">No photos yet · the nightly search adds them</span></div>';
+  if (!ph.length) return '<div class="gal galNone"><span class="micro">No photos yet · the morning search adds them</span></div>';
   const many = ph.length > 1;
   const nav = many
     ? '<button class="galNav prev" data-galstep="-1" aria-label="Previous photo">‹</button><button class="galNav next" data-galstep="1" aria-label="Next photo">›</button>'
@@ -1239,7 +1246,7 @@ function statusSec(t, st) {
     const when = t.updatedAt ? " · " + new Date(t.updatedAt).toLocaleString("en-ZA", { dateStyle: "medium", timeStyle: "short" }) : "";
     changed = `<div class="muted" style="font-size:11px">Last changed by ${esc(whoIs(t.updatedBy))}${when}</div>`;
   }
-  return `<div class="sec"><div class="label">Where we are with it</div>
+  return `<div class="sec statusSec"><div class="label">Where we are with it</div>
        <div class="statusPick">${statusButtons("status", st)}</div>
        ${changed}</div>`;
 }
@@ -1250,7 +1257,7 @@ function copyRow(phone, email) {
   const em = email ? ` · <span style="color:var(--fg)">${esc(email)}</span> <button class="btn small" data-copy="${esc(email)}">Copy</button>` : "";
   return `<div class="muted" style="font-size:12px">Number <span class="num" style="color:var(--fg)">${esc(prettyPhone(phone))}</span> <button class="btn small" data-copy="${esc(prettyPhone(phone))}">Copy</button>${em}</div>`;
 }
-function contactSec(l, phone, email, msg, keep) {
+function contactSec(l, phone, email, msg) {
   const wa = waLink(phone, msg);
   const office = l.phone_work ? `<dt>Office</dt><dd class="num">${esc(prettyPhone(l.phone_work))}</dd>` : "";
   const hint = phone
@@ -1258,11 +1265,11 @@ function contactSec(l, phone, email, msg, keep) {
     : '<div class="muted" style="font-size:12px">The site hides the number behind "Show number". Open the listing, tap it, then paste the number here so you both have it.</div>';
   const tel = phone ? "tel:" + intl(phone).replace(/^27/, "0") : "#";
   const mail = email ? mailtoHref(l, email, msg) : "#";
-  return `<div class="sec"><div class="label">Contact</div>
+  return `<div class="sec"><div class="label">Contact &amp; viewing</div>
        <dl class="kv"><dt>Agency</dt><dd>${esc(l.agency || "Not shown on listing")}</dd><dt>Agent</dt><dd>${esc(l.agent || "Not shown on listing")}</dd>${office}</dl>
        <div class="row">
-         <div class="field" style="flex:1 1 160px"><label class="label" for="dPhone">Phone / WhatsApp</label><input id="dPhone" inputmode="tel" placeholder="e.g. 082 123 4567" value="${esc(keep.dPhone ?? prettyPhone(phone))}"></div>
-         <div class="field" style="flex:1 1 200px"><label class="label" for="dEmail">Email</label><input id="dEmail" type="email" placeholder="agent@agency.co.za" value="${esc(keep.dEmail ?? email)}"></div></div>
+         <div class="field" style="flex:1 1 160px"><label class="label" for="dPhone">Phone / WhatsApp</label><input id="dPhone" inputmode="tel" placeholder="e.g. 082 123 4567" value="${esc(prettyPhone(phone))}"></div>
+         <div class="field" style="flex:1 1 200px"><label class="label" for="dEmail">Email</label><input id="dEmail" type="email" placeholder="agent@agency.co.za" value="${esc(email)}"></div></div>
        ${hint}
        <div class="row">
          <a class="btn wa" href="${wa || "#"}" target="_blank" rel="noopener" aria-disabled="${!wa}">WhatsApp</a>
@@ -1270,6 +1277,8 @@ function contactSec(l, phone, email, msg, keep) {
          <a class="btn" href="${mail}" aria-disabled="${!email}">Email</a>
          <a class="btn primary" href="${safeUrl(l.url)}" target="_blank" rel="noopener">Open listing</a></div>
        ${copyRow(phone, email)}
+       <div class="field"><label class="label" for="dView">Viewing date / time</label><input id="dView" placeholder="e.g. Sat 18 Oct, 10:00" value="${esc(tr(l.id).viewing || "")}"></div>
+       <div class="row"><button class="btn primary" id="dSave">Save contact</button><span class="saved" id="dSavedMsg"></span></div>
      </div>`;
 }
 function messageSec(msg, wa) {
@@ -1308,26 +1317,35 @@ function detailsSec(l) {
        <div class="row"><a class="btn" href="${safeUrl(l.maps_url)}" target="_blank" rel="noopener">Open in Google Maps</a>
          ${routes}</div></div>`;
 }
-const ourNotesSec = (t, keep) => `<div class="sec"><div class="label">Our notes</div>
-       <div class="field"><label class="label" for="dView">Viewing date / time</label><input id="dView" placeholder="e.g. Sat 18 Oct, 10:00" value="${esc(keep.dView ?? (t.viewing || ""))}"></div>
-       <div class="field"><label class="label" for="dNote">Notes</label><textarea id="dNote" placeholder="What did the agent say? What did we like?">${esc(keep.dNote ?? (t.note || ""))}</textarea></div>
-       <div class="row"><button class="btn primary" id="dSave">Save contact &amp; notes</button><span class="saved" id="dSavedMsg"></span></div></div>`;
+// one place for notes: the shared log, plus the old single "Our notes" text (if a place has one) pinned on top
+function notesSec(l, t) {
+  const n = (t.log || []).length,
+    count = n ? `<span class="nCount num">${n}</span>` : "";
+  const pinned = t.note ? `<div class="nPinned"><span class="micro">Earlier notes</span><div class="nText">${esc(t.note)}</div></div>` : "";
+  return `<div class="sec notesSec"><div class="label">Notes ${count}</div>${pinned}${notesBlock(l.id, "drawer")}</div>`;
+}
+const CONTACT_FIELDS = ["dPhone", "dEmail", "dView"];
 function renderDrawer(first) {
   const l = S.listings.get(S.openId);
   if (!l) {
     closeDrawer();
     return;
   }
-  const dr = $("drawer"),
-    t = tr(l.id),
+  const dr = $("drawer");
+  const t = tr(l.id),
     phone = phoneOf(l),
     msg = fillTemplate(l);
   const activeId = document.activeElement?.closest?.("#drawer") ? document.activeElement.id : null;
+  // A refresh (a save, or the 15-second poll) must not lose what's typed, the scroll position or the focus.
+  // Fields are drawn with the saved values (so defaultValue always means "saved") and edits are put back on top.
+  // Opening a place (first) starts clean, so one place's unsaved text can never land on another.
   const keep = {};
-  ["dPhone", "dEmail", "dNote", "dView"].forEach(k => {
-    const el = $(k);
-    if (el && el === document.activeElement) keep[k] = el.value;
-  });
+  if (!first)
+    for (const k of CONTACT_FIELDS) {
+      const el = $(k);
+      if (el && el.value !== el.defaultValue) keep[k] = el.value;
+    }
+  const scroll = first ? 0 : dr.querySelector(".dBody")?.scrollTop || 0;
   const kept = grabTA(dr),
     ph = photosOf(l),
     gi = Math.min(S.galIdx || 0, Math.max(0, ph.length - 1));
@@ -1337,14 +1355,15 @@ function renderDrawer(first) {
    <div class="dBody">
      ${galleryHtml(ph, gi)}
      ${statusSec(t, statusOf(l.id))}
-     ${contactSec(l, phone, emailOf(l), msg, keep)}
+     ${notesSec(l, t)}
+     ${contactSec(l, phone, emailOf(l), msg)}
      ${messageSec(msg, waLink(phone, msg))}
      ${detailsSec(l)}
-     ${ourNotesSec(t, keep)}
-     <div class="sec"><div class="label">Notes log · who said what</div>${notesBlock(l.id, "drawer")}</div>
    </div>`;
-  if (activeId) $(activeId)?.focus();
+  for (const k in keep) $(k).value = keep[k];
+  if (activeId) $(activeId)?.focus({ preventScroll: true });
   putTA(dr, kept);
+  dr.querySelector(".dBody").scrollTop = scroll; // after the note boxes have grown back to size
   if (first) $("dClose").focus();
 }
 // Shows the change straight away, sends one op to the save helper, then swaps in what the server kept.
@@ -1584,8 +1603,10 @@ const onCard = (c, e) => (e.target.closest("a,button") ? SKIP : openDrawer(c.dat
 async function onSaveDetails() {
   if (!S.openId) return SKIP;
   const v = id => $(id).value.trim();
-  const ok = await saveTrack(S.openId, { phone: v("dPhone"), email: v("dEmail"), note: v("dNote"), viewing: v("dView") });
-  if (ok && $("dSavedMsg")) $("dSavedMsg").textContent = "Saved for both of you";
+  const ok = await saveTrack(S.openId, { phone: v("dPhone"), email: v("dEmail"), viewing: v("dView") });
+  if (!ok) return; // a failed save keeps what was typed
+  for (const k of CONTACT_FIELDS) $(k).value = $(k).defaultValue; // show the saved (tidied) values
+  $("dSavedMsg").textContent = "Saved for both of you";
 }
 function onToggle(tog) {
   tog.setAttribute("aria-pressed", String(!pressed(tog.id)));
@@ -1691,6 +1712,9 @@ document.addEventListener("keydown", e => {
   }),
 );
 $("q").addEventListener("input", () => render());
+document.addEventListener("input", e => {
+  if (e.target.matches?.("textarea[data-nin],textarea[data-nedit]")) fitTA(e.target);
+});
 let rz;
 globalThis.addEventListener("resize", () => {
   clearTimeout(rz);

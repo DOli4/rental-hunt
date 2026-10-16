@@ -7,7 +7,7 @@ Dieter's hub for finding a 3-bedroom, 2-bathroom rental under R16 000 in Centuri
   heart them, set statuses, add/edit/delete notes and save numbers. Everyone else sees a sign-in screen.
 - **Invite someone:** add their Google email to `ALLOWED_EMAILS` on Cloudflare (see
   [worker/README.md](worker/README.md#later)), then send them the link.
-- **Every evening** a scheduled Claude session searches Property24, Private Property, MyProperty,
+- **Every morning at 08:00** a scheduled Claude session searches Property24, Private Property, MyProperty,
   Gumtree and new developments and commits the results to the private data repo. The steps are in
   [ROUTINE.md](ROUTINE.md).
 
@@ -21,7 +21,7 @@ github.io page (index.html)  ── Google sign-in ──▶  save helper (Cloud
 
 - **This repo** (public) is just the website code. GitHub Pages publishes it.
 - **`DOli4/rental-hunt-data`** (private) holds everything the site shows, as plain files on its `data`
-  branch. Only the save helper and the nightly search can read it.
+  branch. Only the save helper and the daily search can read it.
 - The page stores a signed 30-day session in the browser (for `doli4.github.io`, which this site shares
   with Dieter's CV site). Signing out forgets it on that device; removing someone from the invite list, or
   replacing `SESSION_SECRET`, ends it everywhere.
@@ -44,11 +44,11 @@ In `DOli4/rental-hunt-data` (branch `data`):
 
 | File | Written by | What it is |
 |---|---|---|
-| `listings.json` | nightly search | Every place found so far, with first/last seen and price history |
+| `listings.json` | daily search | Every place found so far, with first/last seen and price history |
 | `track.json` | people, via the site | Hearts, statuses, phone/email, viewing times and the notes log |
-| `meta.json` | nightly search | When it last ran and what changed |
+| `meta.json` | daily search | When it last ran and what changed |
 | `settings.json` | you, by hand | Optional `{"template": "..."}` to change the WhatsApp/email message |
-| `history/<date>.json` | nightly search | Snapshot after each night |
+| `history/<date>.json` | daily search | Snapshot after each run |
 
 ## Notes
 

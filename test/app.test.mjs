@@ -103,7 +103,7 @@ test("app: sign in, browse, save, notes, map, filters, partner changes, errors",
     assert.equal(state("S.openId"), id);
     click($('[data-status="viewing"]'));
     await until(() => toast() === "Marked viewing booked", "status toast");
-    $("#dPhone").value = "082 123 4567"; $("#dEmail").value = "agent@x.co.za"; $("#dNote").value = "nice garden"; $("#dView").value = "Sat 10:00";
+    $("#dPhone").value = "082 123 4567"; $("#dEmail").value = "agent@x.co.za"; $("#dView").value = "Sat 10:00";
     click($("#dSave"));
     await until(() => $("#dSavedMsg")?.textContent === "Saved for both of you", "details saved");
     assert.equal(JSON.parse(gh.files["track.json"])[id].phone, "082 123 4567");
@@ -137,6 +137,19 @@ test("app: sign in, browse, save, notes, map, filters, partner changes, errors",
     click($(`#view .pcard[data-id="${id}"] .pcWin`));
     click($("#dClose"));
     await until(() => $("#drawer").hidden, "drawer closed by button");
+
+    // unsaved contact text survives a refresh, but never follows you to another place
+    click($(`#view .pcard[data-id="${id}"] .pcWin`));
+    $("#dEmail").value = "draft@x.co.za";
+    state("renderDrawer()"); state("renderDrawer()");
+    assert.equal($("#dEmail").value, "draft@x.co.za");
+    click($("#dClose"));
+    await until(() => $("#drawer").hidden, "drawer closed with a draft");
+    const other = $$("#view .pcard").find(c => c.dataset.id !== id).dataset.id;
+    click($(`#view .pcard[data-id="${other}"] .pcWin`));
+    assert.notEqual($("#dEmail").value, "draft@x.co.za");
+    click($("#dClose"));
+    await until(() => $("#drawer").hidden, "other drawer closed");
 
     // notes button on a card opens the dossier and scrolls to the notes
     click($(`#view .pcard[data-id="${id}"] [data-opennotes]`));

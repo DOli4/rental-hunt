@@ -5,7 +5,7 @@ Everything the site shows lives as files on the `data` branch of the **private**
 https://github.com/DOli4/rental-hunt-data (this session needs read/write access to it). The scripts live in
 the public repo https://github.com/DOli4/rental-hunt.
 Fetch pages one at a time (never parallel bursts). Never click "Show number", never solve or bypass a
-CAPTCHA, never work around a site that blocks you. If a site blocks you, skip it tonight.
+CAPTCHA, never work around a site that blocks you. If a site blocks you, skip it this run.
 
 ## What qualifies
 
@@ -51,12 +51,12 @@ suburb, price, size, agent), don't add it; mention it in your report instead.
 
 ### Photos (the site shows them on the honeycomb tiles and in each place's gallery)
 
-- For every listing whose detail page you open tonight, collect its photos: the page's `og:image` first, then
+- For every listing whose detail page you open this run, collect its photos: the page's `og:image` first, then
   up to 7 more gallery image URLs (Property24: `images.prop24.com/...`; Private Property: `images.pp.co.za/...`,
   prefer the 1024/1600-wide versions). Only `https://` image URLs, no thumbnails of other listings.
 - **Backfill:** also open the detail page (one at a time, same rules as above) for up to **25** active
   listings whose `photos` list is empty or missing in `data/listings.json`: shortlisted ones first (status
-  interested / contacted / viewing in `data/track.json`), then the cheapest. Over a few nights every place gets photos.
+  interested / contacted / viewing in `data/track.json`), then the cheapest. Over a few days every place gets photos.
 - Put them in that listing's `photos` field in `run.json`. `merge.py` only fills `photos` when it was empty, so
   existing galleries are never overwritten.
 
@@ -71,7 +71,7 @@ Write `run.json` in the repo root:
 Each listing: id, source, url, type, suburb, address, price, beds, baths, size_m2, available,
 pets ("yes" / "no" / "dogs only" / "small pets" / "unknown"), fibre ("yes" / "ready" / "unknown"), security,
 agency, agent, phone (only if printed on the page), summary (one line), note, photos (list of https image
-URLs; see Photos above). Include every qualifying listing seen tonight, old ones too. Only list a site in
+URLs; see Photos above). Include every qualifying listing seen this run, old ones too. Only list a site in
 `sources_ok` if you read it fully; listings from other sites stay active.
 
 ```bash
